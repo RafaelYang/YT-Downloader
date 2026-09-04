@@ -5,6 +5,7 @@ from pathlib import Path
 
 from desktop_app import (
     InstanceLock,
+    configure_frozen_stdio,
     create_macos_reopen_delegate,
     health_url,
     launch_url,
@@ -131,6 +132,28 @@ def test_local_urls_do_not_expose_token_in_health_endpoint():
     url = launch_url(18765, "secret value")
     assert url.startswith("http://127.0.0.1:18765/launch?")
     assert "secret+value" in url
+
+
+def test_frozen_stdio_writes_startup_log(tmp_path, monkeypatch):
+    original_stdout = desktop_app.sys.stdout
+    original_stderr = desktop_app.sys.stderr
+    monkeypatch.setattr(desktop_app.sys, "frozen", True, raising=False)
+    monkeypatch.setattr(desktop_app, "user_data_dir", lambda: tmp_path)
+
+    stream = configure_frozen_stdio()
+    try:
+        assert stream is not None
+        print("startup diagnostic")
+        stream.flush()
+    finally:
+        desktop_app.sys.stdout = original_stdout
+        desktop_app.sys.stderr = original_stderr
+        if stream is not None:
+            stream.close()
+
+    log = (tmp_path / "logs" / "desktop.log").read_text(encoding="utf-8")
+    assert "YT Downloader by 學人新創" in log
+    assert "startup diagnostic" in log
 
 
 def test_macos_reopen_delegate_invokes_open_callback():

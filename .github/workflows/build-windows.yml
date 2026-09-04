@@ -63,11 +63,28 @@ jobs:
         shell: pwsh
         run: |
           $Executable = (Resolve-Path "dist\YT Downloader by 學人新創\YT Downloader by 學人新創.exe").Path
+          $env:YT_DATA_DIR = Join-Path $env:RUNNER_TEMP "yt-downloader-smoke-data"
+          $env:YT_OUTPUT_DIR = Join-Path $env:RUNNER_TEMP "yt-downloader-smoke-output"
+          $LogPath = Join-Path $env:YT_DATA_DIR "logs\desktop.log"
+
+          function Show-AppDiagnostics {
+            Write-Host "--- packaged app processes ---"
+            Get-Process | Where-Object { $_.ProcessName -match "YT Downloader|node" } | Format-Table -AutoSize | Out-String | Write-Host
+            Write-Host "--- packaged app log ---"
+            if (Test-Path $LogPath) {
+              Get-Content -Path $LogPath -Tail 200
+            }
+            else {
+              Write-Host "No desktop.log was created."
+            }
+          }
+
           $Process = Start-Process -FilePath $Executable -ArgumentList @("--background", "--no-tray", "--no-autostart") -PassThru
           $Healthy = $false
           try {
             for ($Attempt = 0; $Attempt -lt 120; $Attempt++) {
               if ($Process.HasExited) {
+                Show-AppDiagnostics
                 throw "Packaged application exited before its local API became healthy."
               }
               try {
@@ -82,6 +99,7 @@ jobs:
               }
             }
             if (-not $Healthy) {
+              Show-AppDiagnostics
               throw "Packaged application did not become healthy within 60 seconds."
             }
             Write-Host "Packaged Windows local API is healthy."

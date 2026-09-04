@@ -14,6 +14,7 @@ import subprocess
 import sys
 import threading
 import time
+import traceback
 import urllib.error
 import urllib.request
 import webbrowser
@@ -40,6 +41,22 @@ from desktop_platform import (
     set_autostart_preference,
     windows_autostart_enabled,
 )
+
+
+def configure_frozen_stdio() -> IO[str] | None:
+    """Persist output from windowless packaged apps for startup diagnostics."""
+    if not getattr(sys, "frozen", False):
+        return None
+    try:
+        log_path = user_data_dir() / "logs" / "desktop.log"
+        log_path.parent.mkdir(parents=True, exist_ok=True)
+        stream = log_path.open("a", encoding="utf-8", buffering=1)
+    except OSError:
+        return None
+    sys.stdout = stream
+    sys.stderr = stream
+    print(f"\n--- {PRODUCT_NAME} {APP_VERSION} pid={os.getpid()} ---")
+    return stream
 
 
 class InstanceLock:
@@ -499,5 +516,11 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    multiprocessing.freeze_support()
-    raise SystemExit(main())
+    _desktop_log = configure_frozen_stdio()
+    try:
+        multiprocessing.freeze_support()
+        _exit_code = main()
+    except Exception:
+        traceback.print_exc()
+        _exit_code = 1
+    raise SystemExit(_exit_code)
