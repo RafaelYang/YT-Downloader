@@ -1,0 +1,132 @@
+name: Build Windows preview
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing prerelease tag to receive the installer
+        required: true
+        default: v0.1.0-dev
+        type: string
+      publish_release:
+        description: Attach the verified installer to the private GitHub Release
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  build-windows-x64:
+    name: Windows 10/11 x64 installer
+    runs-on: windows-2022
+    timeout-minutes: 90
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Python 3.12 x64
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          architecture: x64
+          cache: pip
+
+      - name: Install Python dependencies
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -r requirements-dev.txt
+
+      - name: Fetch and verify pinned Windows runtimes
+        shell: pwsh
+        run: ./scripts/fetch_windows_runtime.ps1
+
+      - name: Run source tests
+        shell: pwsh
+        run: |
+          python -m pytest -q
+          python -m py_compile app.py desktop_app.py desktop_config.py desktop_platform.py whisper_model_manager.py
+          node --check static/app.js
+
+      - name: Build Windows application
+        shell: pwsh
+        run: ./scripts/build_windows.ps1 -Python python
+
+      - name: Smoke-test packaged application
+        shell: pwsh
+        run: |
+          $Executable = (Resolve-Path "dist\YT Downloader by 學人新創\YT Downloader by 學人新創.exe").Path
+          $Process = Start-Process -FilePath $Executable -ArgumentList @("--background", "--no-tray", "--no-autostart") -PassThru
+          $Healthy = $false
+          try {
+            for ($Attempt = 0; $Attempt -lt 120; $Attempt++) {
+              if ($Process.HasExited) {
+                throw "Packaged application exited before its local API became healthy."
+              }
+              try {
+                $Response = Invoke-RestMethod -Uri "http://127.0.0.1:18765/api/health" -TimeoutSec 2
+                if ($Response.status -eq "ok" -and $Response.product -eq "YT Downloader by 學人新創") {
+                  $Healthy = $true
+                  break
+                }
+              }
+              catch {
+                Start-Sleep -Milliseconds 500
+              }
+            }
+            if (-not $Healthy) {
+              throw "Packaged application did not become healthy within 60 seconds."
+            }
+            Write-Host "Packaged Windows local API is healthy."
+          }
+          finally {
+            if (-not $Process.HasExited) {
+              & taskkill.exe /PID $Process.Id /T /F | Out-Null
+            }
+          }
+
+      - name: Build current-user installer
+        shell: pwsh
+        run: |
+          $Compiler = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $Compiler)) {
+            throw "Inno Setup compiler is unavailable on the Windows runner."
+          }
+          & $Compiler "packaging\windows-x64.iss"
+          if ($LASTEXITCODE -ne 0) {
+            throw "Inno Setup failed."
+          }
+
+          $Installer = (Resolve-Path "dist\installer\YT-Downloader-by-Xueren-0.1.0-dev-Windows-x64-Setup.exe").Path
+          $Hash = (Get-FileHash -Path $Installer -Algorithm SHA256).Hash.ToLowerInvariant()
+          $Checksum = Join-Path (Split-Path -Parent $Installer) "SHA256SUMS-windows.txt"
+          Set-Content -Path $Checksum -Encoding ascii -Value "$Hash  $([System.IO.Path]::GetFileName($Installer))"
+          Write-Host "installer=$Installer"
+          Write-Host "sha256=$Hash"
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: YT-Downloader-by-Xueren-0.1.0-dev-Windows-x64
+          path: |
+            dist/installer/YT-Downloader-by-Xueren-0.1.0-dev-Windows-x64-Setup.exe
+            dist/installer/SHA256SUMS-windows.txt
+          compression-level: 0
+          if-no-files-found: error
+
+      - name: Attach installer to private prerelease
+        if: ${{ inputs.publish_release }}
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          gh release view $env:RELEASE_TAG
+          gh release upload $env:RELEASE_TAG `
+            "dist\installer\YT-Downloader-by-Xueren-0.1.0-dev-Windows-x64-Setup.exe#Windows 10/11 x64 安裝程式" `
+            "dist\installer\SHA256SUMS-windows.txt#Windows SHA-256 校驗碼" `
+            --clobber

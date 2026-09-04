@@ -9,9 +9,12 @@ the applicable license texts and satisfy source-availability requirements.
 - Version used by the Apple Silicon preview: 9.0.1
 - Binary provider: <https://ffmpeg.martin-riedl.de/>
 - Reproducible build scripts: <https://git.martin-riedl.de/ffmpeg/build-script>
+- Version used by the Windows x64 preview: FFmpeg n8.1.2-50-g1a748fe2cd
+- Windows binary provider and build scripts: <https://github.com/BtbN/FFmpeg-Builds>
 - Upstream source: <https://ffmpeg.org/download.html>
 - Build configuration includes `--enable-gpl --enable-version3`; the resulting
   binaries report GPLv3 or later.
+- The Windows build bundles the binary archive's `LICENSE.txt`.
 
 ## yt-dlp
 
@@ -30,7 +33,7 @@ the applicable license texts and satisfy source-availability requirements.
 
 ## Node.js
 
-- Version used by the Apple Silicon preview: 24.20.0 (arm64)
+- Version used by the Apple Silicon and Windows x64 previews: 24.20.0
 - Project and source: <https://nodejs.org/en/about/get-involved>
 - License: MIT; Node.js also bundles components under their respective licenses.
 - The Node.js license is included with the App bundle.

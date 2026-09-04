@@ -32,10 +32,13 @@ from desktop_config import (
 from desktop_platform import (
     autostart_preference,
     install_macos_autostart,
+    install_windows_autostart,
     macos_autostart_enabled,
     open_output_folder,
     remove_macos_autostart,
+    remove_windows_autostart,
     set_autostart_preference,
+    windows_autostart_enabled,
 )
 
 
@@ -143,7 +146,9 @@ def pot_provider_resources() -> tuple[Path, Path] | None:
     """Locate the bundled Node runtime and loopback PO-token provider server."""
     resources = resource_dir()
     node_candidates = [
+        resources / "tools" / "node.exe",
         resources / "tools" / "node",
+        resources / "vendor" / "windows-x64" / "node.exe",
         resources / "vendor" / "macos-arm64" / "node",
     ]
     node_path = next(
@@ -221,6 +226,11 @@ def start_pot_provider() -> tuple[subprocess.Popen, str] | None:
         stdin=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
+        creationflags=(
+            getattr(subprocess, "CREATE_NO_WINDOW", 0)
+            if sys.platform.startswith("win")
+            else 0
+        ),
     )
 
     if wait_for_pot_provider(process, url):
@@ -291,6 +301,13 @@ def run_tray(server: Any, port: int, token: str) -> None:
             else:
                 install_macos_autostart()
                 set_autostart_preference(True)
+        elif sys.platform.startswith("win"):
+            if windows_autostart_enabled():
+                remove_windows_autostart()
+                set_autostart_preference(False)
+            else:
+                install_windows_autostart()
+                set_autostart_preference(True)
 
     def on_quit(icon: Any, _item: Any) -> None:
         server.should_exit = True
@@ -311,7 +328,10 @@ def run_tray(server: Any, port: int, token: str) -> None:
         pystray.MenuItem(
             "登入後自動啟動",
             on_autostart,
-            checked=lambda _item: sys.platform == "darwin" and macos_autostart_enabled(),
+            checked=lambda _item: (
+                (sys.platform == "darwin" and macos_autostart_enabled())
+                or (sys.platform.startswith("win") and windows_autostart_enabled())
+            ),
         ),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("結束", on_quit),
@@ -353,14 +373,22 @@ def wait_without_tray(server: Any) -> None:
 
 
 def configure_autostart(enable: bool) -> int:
-    if sys.platform != "darwin":
-        print("目前這個預覽版只實作 macOS 自動啟動設定。")
+    if sys.platform != "darwin" and not sys.platform.startswith("win"):
+        print("目前只支援 macOS 與 Windows 自動啟動設定。")
         return 2
     if enable:
-        print(f"已設定登入後自動啟動：{install_macos_autostart()}")
+        if sys.platform == "darwin":
+            destination = str(install_macos_autostart())
+        else:
+            destination = install_windows_autostart()
+        print(f"已設定登入後自動啟動：{destination}")
         set_autostart_preference(True)
     else:
-        removed = remove_macos_autostart()
+        removed = (
+            remove_macos_autostart()
+            if sys.platform == "darwin"
+            else remove_windows_autostart()
+        )
         set_autostart_preference(False)
         print("已移除登入自動啟動。" if removed else "尚未設定登入自動啟動。")
     return 0
@@ -398,7 +426,7 @@ def main(argv: list[str] | None = None) -> int:
     if not lock.acquire():
         if open_existing_instance():
             return 0
-        print("背景程式已存在，但目前無法連線。請先從選單列結束後再試。", file=sys.stderr)
+        print("背景程式已存在，但目前無法連線。請先從系統列／選單列結束後再試。", file=sys.stderr)
         return 1
 
     server = None
@@ -428,11 +456,19 @@ def main(argv: list[str] | None = None) -> int:
             print("本機服務啟動失敗。", file=sys.stderr)
             return 1
 
-        if getattr(sys, "frozen", False) and sys.platform == "darwin" and not args.no_autostart:
+        if (
+            getattr(sys, "frozen", False)
+            and (sys.platform == "darwin" or sys.platform.startswith("win"))
+            and not args.no_autostart
+        ):
             preference = autostart_preference()
             if preference is not False:
-                # Rewriting also repairs the executable path if the App was moved.
-                install_macos_autostart()
+                if sys.platform == "darwin":
+                    # Rewriting also repairs the executable path if the App was moved.
+                    install_macos_autostart()
+                else:
+                    # Rewriting repairs the executable path after an installer upgrade.
+                    install_windows_autostart()
                 if preference is None:
                     set_autostart_preference(True)
 

@@ -15,6 +15,53 @@ import desktop_app
 from desktop_config import model_dir, output_dir, user_data_dir
 import desktop_platform
 from desktop_platform import install_macos_autostart, macos_launch_agent_path, open_folder
+from desktop_platform import (
+    install_windows_autostart,
+    remove_windows_autostart,
+    windows_autostart_command,
+    windows_autostart_enabled,
+)
+
+
+class FakeWindowsRegistry:
+    HKEY_CURRENT_USER = object()
+    KEY_SET_VALUE = 1
+    KEY_READ = 2
+    REG_SZ = 1
+
+    class Key:
+        def __init__(self, registry):
+            self.registry = registry
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, _exc_type, _exc, _traceback):
+            return False
+
+    def __init__(self):
+        self.values = {}
+
+    def CreateKeyEx(self, _root, _path, _reserved, _access):
+        return self.Key(self)
+
+    def OpenKey(self, _root, _path, _reserved, _access):
+        if not self.values:
+            raise FileNotFoundError
+        return self.Key(self)
+
+    def SetValueEx(self, _key, name, _reserved, value_type, value):
+        self.values[name] = (value, value_type)
+
+    def QueryValueEx(self, _key, name):
+        if name not in self.values:
+            raise FileNotFoundError
+        return self.values[name]
+
+    def DeleteValue(self, _key, name):
+        if name not in self.values:
+            raise FileNotFoundError
+        del self.values[name]
 
 
 def test_platform_data_paths():
@@ -63,6 +110,21 @@ def test_autostart_preference_round_trip(tmp_path, monkeypatch):
     assert desktop_platform.autostart_preference() is True
 
 
+def test_windows_autostart_round_trip_uses_current_user_registry():
+    registry = FakeWindowsRegistry()
+    command = windows_autostart_command(
+        [r"C:\Program Files\YT Downloader\YT Downloader.exe", "--background"]
+    )
+
+    assert command == '"C:\\Program Files\\YT Downloader\\YT Downloader.exe" --background'
+    assert not windows_autostart_enabled(registry)
+    assert install_windows_autostart(registry, command) == command
+    assert windows_autostart_enabled(registry)
+    assert remove_windows_autostart(registry)
+    assert not windows_autostart_enabled(registry)
+    assert not remove_windows_autostart(registry)
+
+
 def test_local_urls_do_not_expose_token_in_health_endpoint():
     assert health_url(18765) == "http://127.0.0.1:18765/api/health"
     url = launch_url(18765, "secret value")
@@ -99,6 +161,19 @@ def test_open_folder_uses_macos_finder(tmp_path, monkeypatch):
 
 def test_pot_provider_resources_prefer_bundled_runtime(tmp_path, monkeypatch):
     node = tmp_path / "tools" / "node"
+    server = tmp_path / "pot-provider" / "server" / "build" / "main.js"
+    node.parent.mkdir(parents=True)
+    server.parent.mkdir(parents=True)
+    node.write_text("node", encoding="utf-8")
+    server.write_text("server", encoding="utf-8")
+    node.chmod(0o755)
+    monkeypatch.setattr(desktop_app, "resource_dir", lambda: tmp_path)
+
+    assert pot_provider_resources() == (node, server)
+
+
+def test_pot_provider_resources_accept_windows_node_exe(tmp_path, monkeypatch):
+    node = tmp_path / "tools" / "node.exe"
     server = tmp_path / "pot-provider" / "server" / "build" / "main.js"
     node.parent.mkdir(parents=True)
     server.parent.mkdir(parents=True)

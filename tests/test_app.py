@@ -7,6 +7,18 @@ from fastapi.testclient import TestClient
 import app as app_module
 
 
+def test_find_media_tool_accepts_packaged_windows_executable(tmp_path, monkeypatch):
+    tool = tmp_path / "tools" / "ffmpeg.exe"
+    tool.parent.mkdir(parents=True)
+    tool.write_bytes(b"windows executable")
+    tool.chmod(0o755)
+    monkeypatch.setattr(app_module.sys, "platform", "win32")
+    monkeypatch.setattr(app_module, "RESOURCE_DIR", tmp_path)
+    monkeypatch.setattr(app_module, "BASE_DIR", tmp_path)
+
+    assert app_module.find_media_tool("ffmpeg") == str(tool)
+
+
 @pytest.mark.parametrize(
     "url",
     [

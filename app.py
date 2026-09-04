@@ -146,21 +146,41 @@ OUTPUT_KINDS = {'mp4', 'mp3', 'transcript'}
 
 def find_media_tool(name: str) -> str:
     """Prefer the packaged tool, then fall back to the developer machine PATH."""
-    candidates = [
-        RESOURCE_DIR / 'tools' / name,
-        BASE_DIR / 'vendor' / 'macos-arm64' / name,
-        Path(sys.executable).resolve().parent / 'tools' / name,
-    ]
+    filenames = [f'{name}.exe', name] if sys.platform.startswith('win') else [name]
+    vendor_platform = (
+        'windows-x64'
+        if sys.platform.startswith('win')
+        else 'macos-arm64' if sys.platform == 'darwin' else None
+    )
+    candidates = []
+    for filename in filenames:
+        candidates.append(RESOURCE_DIR / 'tools' / filename)
+        if vendor_platform:
+            candidates.append(BASE_DIR / 'vendor' / vendor_platform / filename)
+        candidates.append(Path(sys.executable).resolve().parent / 'tools' / filename)
     for candidate in candidates:
         if candidate.is_file() and os.access(candidate, os.X_OK):
             return str(candidate)
-    return shutil.which(name) or name
+    return next((path for filename in filenames if (path := shutil.which(filename))), name)
 
 
 FFMPEG_PATH = find_media_tool('ffmpeg')
 FFPROBE_PATH = find_media_tool('ffprobe')
 NODE_PATH = find_media_tool('node')
 POT_PROVIDER_URL = os.environ.get('YT_POT_PROVIDER_URL', '').rstrip('/')
+
+if IS_DESKTOP and Path(FFMPEG_PATH).is_file():
+    # OpenAI Whisper invokes `ffmpeg` by name even when the input is already WAV.
+    # Expose the trusted bundled tools directory so packaged Windows/macOS builds
+    # do not depend on a separately installed FFmpeg.
+    tool_directory = str(Path(FFMPEG_PATH).resolve().parent)
+    existing_path = os.environ.get('PATH', '')
+    if tool_directory not in existing_path.split(os.pathsep):
+        os.environ['PATH'] = (
+            f'{tool_directory}{os.pathsep}{existing_path}'
+            if existing_path
+            else tool_directory
+        )
 
 
 # ── Pydantic Models ──
