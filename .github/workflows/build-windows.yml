@@ -79,7 +79,7 @@ jobs:
             }
           }
 
-          $Process = Start-Process -FilePath $Executable -ArgumentList @("--background", "--no-tray") -PassThru
+          $Process = Start-Process -FilePath $Executable -ArgumentList @("--background", "--no-tray", "--no-autostart") -PassThru
           $Healthy = $false
           try {
             for ($Attempt = 0; $Attempt -lt 120; $Attempt++) {
@@ -155,7 +155,7 @@ jobs:
             throw "Silent current-user installation failed with exit code $($Install.ExitCode)."
           }
 
-          $Process = Start-Process -FilePath $Executable -ArgumentList @("--background", "--no-tray", "--no-autostart") -PassThru
+          $Process = Start-Process -FilePath $Executable -ArgumentList @("--background", "--no-tray") -PassThru
           $Healthy = $false
           try {
             for ($Attempt = 0; $Attempt -lt 120; $Attempt++) {
