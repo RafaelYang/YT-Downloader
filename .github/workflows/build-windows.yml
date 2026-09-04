@@ -113,6 +113,8 @@ jobs:
       - name: Build current-user installer
         shell: pwsh
         run: |
+          ./scripts/fetch_inno_language.ps1
+
           $Compiler = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $Compiler)) {
             throw "Inno Setup compiler is unavailable on the Windows runner."

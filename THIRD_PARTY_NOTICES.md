@@ -43,6 +43,14 @@ the applicable license texts and satisfy source-availability requirements.
 - Project: <https://github.com/openai/whisper>
 - License: MIT
 
+## Inno Setup
+
+- Project: <https://jrsoftware.org/isinfo.php>
+- License permits use for commercial applications and redistribution subject to
+  its stated conditions.
+- The Windows installer uses a pinned, SHA-256-verified Traditional Chinese
+  message file from the official Inno Setup source repository.
+
 ## FastAPI, Uvicorn, PyInstaller, pystray, Pillow, and JavaScript dependencies
 
 Their license texts and exact versions must be collected into the release

@@ -30,7 +30,7 @@ VersionInfoDescription={#MyAppName} Windows x64 installer
 VersionInfoProductName={#MyAppName}
 
 [Languages]
-Name: "chinesetraditional"; MessagesFile: "compiler:Languages\ChineseTraditional.isl"
+Name: "chinesetraditional"; MessagesFile: "..\build\windows\ChineseTraditional.isl"
 
 [Tasks]
 Name: "desktopicon"; Description: "建立桌面捷徑"; GroupDescription: "其他捷徑："; Flags: checkedonce

@@ -59,8 +59,12 @@ FFprobe、Node.js 與 loopback-only PO-token provider：
 .venv\Scripts\python -m pytest -q
 .\scripts\fetch_windows_runtime.ps1
 .\scripts\build_windows.ps1 -Python .venv\Scripts\python.exe
+.\scripts\fetch_inno_language.ps1
 & "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" ".\packaging\windows-x64.iss"
 ```
+
+繁體中文安裝介面採用 Inno Setup 官方翻譯檔；下載器固定來源版本並驗證
+SHA-256，避免依賴建置機是否預先安裝額外語言包。
 
 安裝程式輸出：
 
