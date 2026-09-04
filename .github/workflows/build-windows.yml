@@ -189,10 +189,7 @@ jobs:
             if ($RemoveAutostart.ExitCode -ne 0) {
               throw "The installed application could not remove login startup."
             }
-            $RemainingRunValue = Get-ItemPropertyValue `
-              -Path $RunKey `
-              -Name "YT Downloader by 學人新創" `
-              -ErrorAction SilentlyContinue
+            $RemainingRunValue = (Get-ItemProperty -Path $RunKey -ErrorAction Stop)."YT Downloader by 學人新創"
             if ($null -ne $RemainingRunValue) {
               throw "Login startup remained after the application removed it."
             }
