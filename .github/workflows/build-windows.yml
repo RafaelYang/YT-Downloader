@@ -79,7 +79,7 @@ jobs:
             }
           }
 
-          $Process = Start-Process -FilePath $Executable -ArgumentList @("--background", "--no-tray", "--no-autostart") -PassThru
+          $Process = Start-Process -FilePath $Executable -ArgumentList @("--background", "--no-tray") -PassThru
           $Healthy = $false
           try {
             for ($Attempt = 0; $Attempt -lt 120; $Attempt++) {
@@ -177,6 +177,26 @@ jobs:
               throw "Installed application did not become healthy within 60 seconds."
             }
             Write-Host "Installed Windows application is healthy."
+
+            $RunKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
+            $RunValue = Get-ItemPropertyValue -Path $RunKey -Name "YT Downloader by 學人新創" -ErrorAction Stop
+            if ($RunValue -notmatch [regex]::Escape($Executable) -or $RunValue -notmatch "--background") {
+              throw "First packaged launch did not create the expected current-user login startup command: $RunValue"
+            }
+            Write-Host "First launch registered current-user login startup."
+
+            $RemoveAutostart = Start-Process -FilePath $Executable -ArgumentList "--remove-autostart" -Wait -PassThru
+            if ($RemoveAutostart.ExitCode -ne 0) {
+              throw "The installed application could not remove login startup."
+            }
+            $RemainingRunValue = Get-ItemPropertyValue `
+              -Path $RunKey `
+              -Name "YT Downloader by 學人新創" `
+              -ErrorAction SilentlyContinue
+            if ($null -ne $RemainingRunValue) {
+              throw "Login startup remained after the application removed it."
+            }
+            Write-Host "Current-user login startup removal passed."
           }
           finally {
             if (-not $Process.HasExited) {
