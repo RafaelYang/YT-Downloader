@@ -1,1 +1,1 @@
-fc6636d406054618d438dc6797ca2bca47ff30b12146d806f604e4bad55156fa  YT-Downloader-by-學人新創-0.1.0-dev-macOS-arm64.zip
+fc6636d406054618d438dc6797ca2bca47ff30b12146d806f604e4bad55156fa  YT-Downloader-by-Xueren-0.1.0-dev-macOS-arm64.zip
