@@ -127,9 +127,82 @@ jobs:
           $Installer = (Resolve-Path "dist\installer\YT-Downloader-by-Xueren-0.1.0-dev-Windows-x64-Setup.exe").Path
           $Hash = (Get-FileHash -Path $Installer -Algorithm SHA256).Hash.ToLowerInvariant()
           $Checksum = Join-Path (Split-Path -Parent $Installer) "SHA256SUMS-windows.txt"
-          Set-Content -Path $Checksum -Encoding ascii -Value "$Hash  $([System.IO.Path]::GetFileName($Installer))"
+          [System.IO.File]::WriteAllText(
+            $Checksum,
+            "$Hash  $([System.IO.Path]::GetFileName($Installer))`n",
+            [System.Text.Encoding]::ASCII
+          )
           Write-Host "installer=$Installer"
           Write-Host "sha256=$Hash"
+
+      - name: Smoke-test installer lifecycle
+        shell: pwsh
+        run: |
+          $Installer = (Resolve-Path "dist\installer\YT-Downloader-by-Xueren-0.1.0-dev-Windows-x64-Setup.exe").Path
+          $InstallDir = Join-Path $env:RUNNER_TEMP "yt-downloader-installed"
+          $Executable = Join-Path $InstallDir "YT Downloader by 學人新創.exe"
+          $env:YT_DATA_DIR = Join-Path $env:RUNNER_TEMP "yt-downloader-installer-smoke-data"
+          $env:YT_OUTPUT_DIR = Join-Path $env:RUNNER_TEMP "yt-downloader-installer-smoke-output"
+
+          $Install = Start-Process -FilePath $Installer -ArgumentList @(
+            "/VERYSILENT",
+            "/SUPPRESSMSGBOXES",
+            "/NORESTART",
+            "/SP-",
+            "/DIR=$InstallDir"
+          ) -Wait -PassThru
+          if ($Install.ExitCode -ne 0 -or -not (Test-Path $Executable)) {
+            throw "Silent current-user installation failed with exit code $($Install.ExitCode)."
+          }
+
+          $Process = Start-Process -FilePath $Executable -ArgumentList @("--background", "--no-tray", "--no-autostart") -PassThru
+          $Healthy = $false
+          try {
+            for ($Attempt = 0; $Attempt -lt 120; $Attempt++) {
+              if ($Process.HasExited) {
+                throw "Installed application exited before its local API became healthy."
+              }
+              try {
+                $Response = Invoke-RestMethod -Uri "http://127.0.0.1:18765/api/health" -TimeoutSec 2
+                if ($Response.status -eq "ok" -and $Response.product -eq "YT Downloader by 學人新創") {
+                  $Healthy = $true
+                  break
+                }
+              }
+              catch {
+                Start-Sleep -Milliseconds 500
+              }
+            }
+            if (-not $Healthy) {
+              throw "Installed application did not become healthy within 60 seconds."
+            }
+            Write-Host "Installed Windows application is healthy."
+          }
+          finally {
+            if (-not $Process.HasExited) {
+              & taskkill.exe /PID $Process.Id /T /F | Out-Null
+            }
+          }
+
+          $Uninstaller = Join-Path $InstallDir "unins000.exe"
+          if (-not (Test-Path $Uninstaller)) {
+            throw "The installer did not create an uninstaller."
+          }
+          $Uninstall = Start-Process -FilePath $Uninstaller -ArgumentList @(
+            "/VERYSILENT",
+            "/SUPPRESSMSGBOXES",
+            "/NORESTART"
+          ) -Wait -PassThru
+          if ($Uninstall.ExitCode -ne 0) {
+            throw "Silent uninstallation failed with exit code $($Uninstall.ExitCode)."
+          }
+          for ($Attempt = 0; $Attempt -lt 20 -and (Test-Path $InstallDir); $Attempt++) {
+            Start-Sleep -Milliseconds 500
+          }
+          if (Test-Path $InstallDir) {
+            throw "Uninstallation left the application install directory behind."
+          }
+          Write-Host "Windows installer install/start/uninstall lifecycle passed."
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v7

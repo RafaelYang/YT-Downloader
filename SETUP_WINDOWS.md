@@ -74,7 +74,8 @@ dist\installer\YT-Downloader-by-Xueren-0.1.0-dev-Windows-x64-Setup.exe
 
 GitHub Actions 的 `Build Windows preview` 工作會在 `windows-2022` x64 環境
 執行來源測試、PyInstaller 封裝後的本機 API 冒煙測試、Inno Setup 安裝包建置、
-SHA-256 產生，並可將通過驗證的安裝程式附加到既有私人 prerelease。
+安裝／啟動／解除安裝生命週期測試、跨平台 SHA-256 檔案產生，並可將通過
+驗證的安裝程式附加到既有私人 prerelease。
 
 ## 尚需實機驗收
 
