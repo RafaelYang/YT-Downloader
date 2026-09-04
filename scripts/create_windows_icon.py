@@ -29,7 +29,7 @@ def main() -> None:
         format="ICO",
         sizes=[(16, 16), (24, 24), (32, 32), (48, 48), (64, 64), (128, 128), (256, 256)],
     )
-    print(f"已建立 Windows 圖示：{OUTPUT}")
+    print(f"Created Windows icon: {OUTPUT}")
 
 
 if __name__ == "__main__":

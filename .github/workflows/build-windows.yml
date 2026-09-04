@@ -49,8 +49,11 @@ jobs:
         shell: pwsh
         run: |
           python -m pytest -q
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python -m py_compile app.py desktop_app.py desktop_config.py desktop_platform.py whisper_model_manager.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           node --check static/app.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Build Windows application
         shell: pwsh

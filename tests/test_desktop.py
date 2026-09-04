@@ -98,7 +98,8 @@ def test_macos_launch_agent_contents(tmp_path):
         payload = plistlib.load(handle)
     assert payload["ProgramArguments"] == arguments
     assert payload["RunAtLoad"] is True
-    assert path.stat().st_mode & 0o777 == 0o600
+    if sys.platform == "darwin":
+        assert path.stat().st_mode & 0o777 == 0o600
 
 
 def test_autostart_preference_round_trip(tmp_path, monkeypatch):
