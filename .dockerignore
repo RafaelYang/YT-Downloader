@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+downloads/
+*.pyc
+.git/
+.gitignore
+*.md
+人形機器人_資料下載程式.py
+*cookies*.txt
+youtube_cookies.txt

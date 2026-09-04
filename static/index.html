@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YT Downloader by 學人新創 — 影片・音檔・逐字稿</title>
+    <meta name="description" content="YT Downloader by 學人新創：下載 YouTube 影片（MP4）、音檔（MP3）並自動產生 AI 逐字稿">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- 背景動態光暈 -->
+    <div class="bg-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+
+    <main class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="logo">
+                <span class="logo-icon">▶</span>
+                <div class="logo-copy">
+                    <h1>YT Downloader</h1>
+                    <span class="brand-byline">by 學人新創</span>
+                </div>
+            </div>
+            <p class="subtitle">影片下載 · 音檔轉換 · AI 逐字稿</p>
+        </header>
+
+        <!-- 輸入區 -->
+        <section class="input-section">
+            <div class="input-wrapper" id="input-wrapper">
+                <div class="input-icon">🔗</div>
+                <input
+                    type="url"
+                    id="url-input"
+                    placeholder="貼上 YouTube 影片網址..."
+                    autocomplete="off"
+                    spellcheck="false"
+                >
+                <button id="paste-btn" class="paste-btn" title="從剪貼簿貼上">📋</button>
+            </div>
+            <button id="resolve-btn" class="btn-primary">
+                <span class="btn-text">🔍 解析影片</span>
+                <span class="btn-loading" style="display:none;">
+                    <span class="spinner"></span> 解析中...
+                </span>
+            </button>
+        </section>
+
+        <!-- 錯誤訊息 -->
+        <div id="error-msg" class="error-msg" style="display:none;"></div>
+
+        <!-- 影片資訊 -->
+        <section id="video-info" class="video-info" style="display:none;">
+            <img id="video-thumb" class="video-thumb" alt="影片縮圖">
+            <div class="video-meta">
+                <h3 id="video-title"></h3>
+                <div class="video-badges">
+                    <span id="video-duration" class="badge">⏱ —</span>
+                    <span id="video-quality" class="badge badge-accent">📺 —</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 功能選擇區：三張卡片 -->
+        <section id="action-section" class="action-section" style="display:none;">
+            <div class="action-cards">
+                <!-- MP4 下載 -->
+                <div class="action-card" id="card-mp4">
+                    <div class="action-icon">🎬</div>
+                    <div class="action-title">影片 MP4</div>
+                    <div class="action-desc">選擇畫質，預設最高</div>
+                    <div class="quality-control" id="quality-control">
+                        <span class="quality-control-label" id="quality-control-label">影片畫質與預估大小</span>
+                        <button
+                            class="quality-trigger"
+                            id="quality-trigger"
+                            type="button"
+                            aria-haspopup="dialog"
+                            aria-expanded="false"
+                            aria-controls="quality-dialog"
+                            aria-labelledby="quality-control-label quality-trigger-label quality-trigger-size"
+                            disabled
+                        >
+                            <span class="quality-trigger-copy">
+                                <strong id="quality-trigger-label">等待影片解析</strong>
+                                <small id="quality-trigger-size">—</small>
+                            </span>
+                            <span class="quality-trigger-arrow" aria-hidden="true">⌄</span>
+                        </button>
+                    </div>
+                    <button class="btn-action" id="btn-mp4" onclick="startTask('mp4')">
+                        <span class="btn-action-text">📥 下載</span>
+                        <span class="btn-action-loading" style="display:none;">
+                            <span class="spinner-sm"></span>
+                        </span>
+                    </button>
+                    <!-- 進度與下載結果會動態插入這裡 -->
+                    <div class="action-progress" id="progress-mp4" style="display:none;">
+                        <div class="mini-progress-bar"><div class="mini-progress-fill" id="fill-mp4"></div></div>
+                        <p class="mini-progress-text" id="text-mp4"></p>
+                    </div>
+                    <div class="result-actions" id="result-actions-mp4" style="display:none;">
+                        <a class="btn-download-result" id="dl-mp4" download>📥 儲存檔案</a>
+                        <button class="btn-open-folder" id="open-folder-mp4" type="button" onclick="openOutputFolder('mp4')">📂 開啟資料夾</button>
+                    </div>
+                    <span class="result-size" id="size-mp4"></span>
+                </div>
+
+                <!-- MP3 下載 -->
+                <div class="action-card" id="card-mp3">
+                    <div class="action-icon">🎧</div>
+                    <div class="action-title">音檔 MP3</div>
+                    <div class="action-desc">高音質音訊檔</div>
+                    <button class="btn-action" id="btn-mp3" onclick="startTask('mp3')">
+                        <span class="btn-action-text">📥 下載</span>
+                        <span class="btn-action-loading" style="display:none;">
+                            <span class="spinner-sm"></span>
+                        </span>
+                    </button>
+                    <div class="action-progress" id="progress-mp3" style="display:none;">
+                        <div class="mini-progress-bar"><div class="mini-progress-fill" id="fill-mp3"></div></div>
+                        <p class="mini-progress-text" id="text-mp3"></p>
+                    </div>
+                    <div class="result-actions" id="result-actions-mp3" style="display:none;">
+                        <a class="btn-download-result" id="dl-mp3" download>📥 儲存檔案</a>
+                        <button class="btn-open-folder" id="open-folder-mp3" type="button" onclick="openOutputFolder('mp3')">📂 開啟資料夾</button>
+                    </div>
+                    <span class="result-size" id="size-mp3"></span>
+                </div>
+
+                <!-- 逐字稿 -->
+                <div class="action-card" id="card-transcript">
+                    <div class="action-icon">📝</div>
+                    <div class="action-title">AI 逐字稿</div>
+                    <div class="action-desc">Whisper 語音辨識</div>
+                    <button class="btn-action" id="btn-transcript" onclick="startTask('transcript')">
+                        <span class="btn-action-text">🧠 產生</span>
+                        <span class="btn-action-loading" style="display:none;">
+                            <span class="spinner-sm"></span>
+                        </span>
+                    </button>
+                    <div class="action-progress" id="progress-transcript" style="display:none;">
+                        <div class="mini-progress-bar"><div class="mini-progress-fill" id="fill-transcript"></div></div>
+                        <p class="mini-progress-text" id="text-transcript"></p>
+                    </div>
+                    <div class="result-actions" id="result-actions-transcript" style="display:none;">
+                        <a class="btn-download-result" id="dl-transcript" download>📥 儲存檔案</a>
+                        <button class="btn-open-folder" id="open-folder-transcript" type="button" onclick="openOutputFolder('transcript')">📂 開啟資料夾</button>
+                    </div>
+                    <span class="result-size" id="size-transcript"></span>
+                    <p class="transcript-preview" id="preview-transcript" style="display:none;"></p>
+                </div>
+            </div>
+
+            <section class="video-preview-panel" id="video-preview-panel" style="display:none;">
+                <div class="video-preview-heading">
+                    <span>🎬 影片預覽</span>
+                    <small>檔案只從你的電腦播放，不會上傳雲端</small>
+                </div>
+                <video id="video-preview" controls playsinline preload="metadata"></video>
+            </section>
+        </section>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>YT Downloader by 學人新創</p>
+            <p>Powered by yt-dlp · FFmpeg · OpenAI Whisper</p>
+        </footer>
+    </main>
+
+    <div class="quality-dialog" id="quality-dialog" hidden>
+        <button class="quality-dialog-backdrop" type="button" aria-label="關閉畫質選擇"></button>
+        <section
+            class="quality-dialog-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="quality-dialog-title"
+        >
+            <header class="quality-dialog-header">
+                <div>
+                    <span class="quality-dialog-eyebrow">影片 MP4</span>
+                    <h2 id="quality-dialog-title">選擇影片畫質</h2>
+                </div>
+                <button class="quality-dialog-close" id="quality-dialog-close" type="button" aria-label="關閉">×</button>
+            </header>
+            <div class="quality-options" id="quality-options" role="listbox" aria-label="影片畫質"></div>
+        </section>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

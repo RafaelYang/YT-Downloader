@@ -1,0 +1,64 @@
+--- a/server/src/main.ts
++++ b/server/src/main.ts
+@@ -12,44 +12,22 @@
+ httpServer.use(express.json());
+ httpServer.use(express.urlencoded({ extended: true }));
+ 
+-httpServer
+-    .listen(
+-        {
+-            host: "::",
+-            port: PORT_NUMBER,
+-        },
+-        (err) => {
+-            if (err) {
+-                console.error(
+-                    `Could not listen on [::]:${PORT_NUMBER}, falling back to 0.0.0.0 (Caused by ${strerror(err)})`,
+-                );
+-            } else {
+-                console.log(
+-                    `Started POT server (v${VERSION}) on on address [::]:${PORT_NUMBER}`,
+-                );
+-            }
+-        },
+-    )
+-    .on("error", () => {
+-        // ipv4 only systems might not be able to bind to "::", so we try 0.0.0.0 instead
+-        // this is temporary as we plan to bind to localhost in the next major version
+-        httpServer.listen(
+-            {
+-                host: "0.0.0.0",
+-                port: PORT_NUMBER,
+-            },
+-            (err) => {
+-                if (err) {
+-                    console.error(
+-                        `Could not listen on [::]:${PORT_NUMBER} (Caused by ${strerror(err)})`,
+-                    );
+-                } else {
+-                    console.log(
+-                        `Started POT server (v${VERSION}) on address 0.0.0.0:${PORT_NUMBER}`,
+-                    );
+-                }
+-            },
+-        );
+-    });
++httpServer.listen(
++    {
++        host: "127.0.0.1",
++        port: PORT_NUMBER,
++    },
++    (err) => {
++        if (err) {
++            console.error(
++                `Could not listen on 127.0.0.1:${PORT_NUMBER} (Caused by ${strerror(err)})`,
++            );
++        } else {
++            console.log(
++                `Started POT server (v${VERSION}) on address 127.0.0.1:${PORT_NUMBER}`,
++            );
++        }
++    },
++);
+ 
+ const sessionManager = new SessionManager();

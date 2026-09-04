@@ -1,0 +1,15 @@
+{
+  "hosting": {
+    "site": "meiya-ytdl",
+    "public": "public",
+    "rewrites": [
+      {
+        "source": "**",
+        "run": {
+          "serviceId": "yt-downloader",
+          "region": "asia-east1"
+        }
+      }
+    ]
+  }
+}

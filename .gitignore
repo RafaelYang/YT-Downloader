@@ -1,0 +1,30 @@
+# Secrets and local authentication
+*cookies*.txt
+.env
+.env.*
+!.env.example
+
+# Python caches and local environments
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Generated builds, bundled runtimes, and downloaded output
+build/
+dist/
+vendor/
+downloads/
+*.log
+runtime.json
+runtime.lock
+
+# Local tool and operating-system files
+.firebase/
+.DS_Store
+
+# Legacy/internal files that are not part of the desktop application
+EditHistory.md
+人形機器人_資料下載程式.py

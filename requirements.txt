@@ -1,0 +1,6 @@
+fastapi
+uvicorn[standard]
+yt-dlp
+yt-dlp-ejs
+bgutil-ytdlp-pot-provider==1.3.2
+openai-whisper
