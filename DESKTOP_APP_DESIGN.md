@@ -2,7 +2,7 @@
 
 Windows 與 macOS 桌面版產品與技術設計 v1
 
-狀態：Apple Silicon `0.1.0-dev` 開發預覽已建置並在 Apple M2 Pro 驗證；尚未完成 Developer ID 公證、乾淨 Mac 驗收、Windows 安裝包與自動更新，因此還不是正式公開版。
+狀態：Apple Silicon 與 Windows x64 `0.1.0-dev` 開發預覽均已建置。Mac 版已在 Apple M2 Pro 驗證；Windows 版已在 GitHub Windows Runner 通過封裝版啟動及安裝／啟動／解除安裝測試，但尚待乾淨 Windows 10／11 實機功能驗收。Developer ID 公證、Windows 程式碼簽章與自動更新仍未完成，因此還不是正式公開版。
 
 截至 2026-08-31 的實作進度：
 
@@ -14,7 +14,10 @@ Windows 與 macOS 桌面版產品與技術設計 v1
   bgutil-ytdlp-pot-provider 1.3.2 高畫質相容層。
 - 已完成預設最高畫質、各畫質預估大小、實際輸出高度核對與本機 MP4 預覽。
 - 已在封裝後 App 端到端驗證 MP4、MP3 與 Whisper `small` MPS 逐字稿。
-- 仍待完成 SQLite queue、工作取消／歷史、24 小時清理、自動更新／回復、正式簽章／公證與 Windows 版本。
+- 已完成 Windows x64 PyInstaller 封裝、系統列、使用者層登入自啟與繁中
+  Inno Setup 安裝程式；Windows Runner 已通過完整安裝生命週期測試。
+- 仍待完成 SQLite queue、工作取消／歷史、24 小時清理、自動更新／回復、
+  正式簽章／公證，以及乾淨 Windows 10／11 實機功能驗收。
 
 ## 1. 產品定位
 
@@ -57,7 +60,7 @@ Windows 與 macOS 桌面版產品與技術設計 v1
 
 ### 第一次安裝
 
-1. Windows 使用者執行 `YT-Downloader-by-學人新創-Setup.exe`；Mac 使用者開啟 `.dmg` 並將 App 放入「應用程式」。
+1. Windows 使用者執行 `YT-Downloader-by-Xueren-0.1.0-dev-Windows-x64-Setup.exe`；Mac 使用者解壓縮 ZIP 並將 App 放入「應用程式」。
 2. 首次啟動顯示授權資訊與「登入後自動啟動」選項；預設勾選。
 3. Windows 安裝至使用者的 Local AppData，不要求系統管理員權限；macOS 使用標準 `.app` bundle 與使用者層 Login Item／LaunchAgent。
 4. 首次啟動完成環境檢查，背景下載尚未安裝的語音模型並顯示進度。
@@ -167,7 +170,7 @@ Windows：
   updates\
   temp\
 
-%USERPROFILE%\Downloads\<YYMMDD_HHMM>\
+%USERPROFILE%\Downloads\<sanitized-title>_<YYMMDD_HHMM>\
   <finished files from one resolved video>
 ```
 
@@ -184,7 +187,7 @@ macOS：
   updates/
   temp/
 
-~/Downloads/<YYMMDD_HHMM>/
+~/Downloads/<sanitized-title>_<YYMMDD_HHMM>/
   <finished files from one resolved video>
 ```
 
