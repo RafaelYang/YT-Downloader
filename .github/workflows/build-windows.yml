@@ -144,6 +144,21 @@ jobs:
           $env:YT_DATA_DIR = Join-Path $env:RUNNER_TEMP "yt-downloader-installer-smoke-data"
           $env:YT_OUTPUT_DIR = Join-Path $env:RUNNER_TEMP "yt-downloader-installer-smoke-output"
 
+          function Get-LoginStartupValue {
+            $Key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey(
+              "Software\Microsoft\Windows\CurrentVersion\Run"
+            )
+            if ($null -eq $Key) {
+              return $null
+            }
+            try {
+              return $Key.GetValue("YT Downloader by 學人新創", $null)
+            }
+            finally {
+              $Key.Dispose()
+            }
+          }
+
           $Install = Start-Process -FilePath $Installer -ArgumentList @(
             "/VERYSILENT",
             "/SUPPRESSMSGBOXES",
@@ -178,8 +193,13 @@ jobs:
             }
             Write-Host "Installed Windows application is healthy."
 
-            $RunKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run"
-            $RunValue = Get-ItemPropertyValue -Path $RunKey -Name "YT Downloader by 學人新創" -ErrorAction Stop
+            $RunValue = $null
+            for ($Attempt = 0; $Attempt -lt 20 -and $null -eq $RunValue; $Attempt++) {
+              $RunValue = Get-LoginStartupValue
+              if ($null -eq $RunValue) {
+                Start-Sleep -Milliseconds 250
+              }
+            }
             if ($RunValue -notmatch [regex]::Escape($Executable) -or $RunValue -notmatch "--background") {
               throw "First packaged launch did not create the expected current-user login startup command: $RunValue"
             }
@@ -189,7 +209,7 @@ jobs:
             if ($RemoveAutostart.ExitCode -ne 0) {
               throw "The installed application could not remove login startup."
             }
-            $RemainingRunValue = (Get-ItemProperty -Path $RunKey -ErrorAction Stop)."YT Downloader by 學人新創"
+            $RemainingRunValue = Get-LoginStartupValue
             if ($null -ne $RemainingRunValue) {
               throw "Login startup remained after the application removed it."
             }
