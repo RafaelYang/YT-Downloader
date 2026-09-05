@@ -2,9 +2,9 @@
 
 Windows 與 macOS 桌面版產品與技術設計 v1
 
-狀態：Apple Silicon 與 Windows x64 `0.1.1-dev` 開發預覽正在建置。Mac 版已在 Apple M2 Pro 驗證；Windows 版已在 GitHub Windows Runner 通過先前版本的封裝版啟動及安裝／啟動／解除安裝測試，但尚待新版與乾淨 Windows 10／11 實機功能驗收。Developer ID 公證、Windows 程式碼簽章與自動更新仍未完成，因此還不是正式公開版。
+狀態：Apple Silicon 與 Windows x64 `0.1.1-dev` 開發預覽已完成建置。Mac 版已在 Apple M2 Pro 驗證手動啟動與舊版 LaunchAgent 清理；Windows 版已在 GitHub Windows Runner 通過封裝版啟動、舊版登入自啟清理及安裝／啟動／解除安裝測試，但尚待乾淨 Windows 10／11 實機功能驗收。Developer ID 公證、Windows 程式碼簽章與自動更新仍未完成，因此還不是正式公開版。
 
-截至 2026-08-31 的實作進度：
+截至 2026-09-05 的實作進度：
 
 - 已完成 macOS 選單列啟動器、單一執行個體、本機資料路徑與 `127.0.0.1` 限制；程式只在使用者手動開啟後執行。
 - 已完成 localhost 隨機憑證、Host／Origin 檢查、YouTube URL 白名單與已登記成品下載路徑。

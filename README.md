@@ -19,7 +19,7 @@
 - FFmpeg 9.0.1 arm64 已固定版本與 SHA-256，可納入開發預覽 App。
 - 高畫質相容層使用固定版本的 Node.js 24.20.0 arm64 與
   bgutil-ytdlp-pot-provider 1.3.2；內部服務只監聽隨機 `127.0.0.1` 連接埠。
-- `dist/` 已產出約 884 MB 的 `.app` 與約 304 MB 的 ZIP 開發預覽。
+- `dist/` 已產出約 884 MB 的 `.app` 與 307,641,726 bytes 的 ZIP 開發預覽。
 - Windows 10／11 x64 current-user 安裝程式已在 GitHub `windows-2022` Runner
   完成建置、封裝版啟動及安裝／啟動／解除安裝生命週期測試。
 - 主程式自動更新、SQLite 背景工作與正式 Developer ID 公證尚未完成。
@@ -157,17 +157,24 @@ YouTube 可能依影片、帳號或網路環境限制擷取。請只處理自己
 - App 通過 `codesign --verify --deep --strict` 與 ZIP 完整性檢查；`spctl`
   仍會拒絕 ad-hoc 簽章，符合「尚未公證的開發預覽」預期。
 
-## 2026-09-04 Windows 驗證紀錄
+## 2026-09-05 手動啟動版驗證紀錄
 
-- GitHub Actions `windows-2022` x64 工作通過 `45 passed`、Python 編譯檢查與
-  JavaScript 語法檢查。
+- 本機測試通過 `45 passed`、Python 編譯檢查與 JavaScript 語法檢查。
+- macOS `0.1.1-dev` 封裝版只在手動開啟後執行；啟動時成功清除刻意建立的
+  舊版 LaunchAgent 與自動啟動偏好，結束後未留下主程式或 PO-token provider。
+- macOS ZIP 大小為 307,641,726 bytes，SHA-256 為
+  `c4ff8f44d6ea22194eedf729d07344bd09fbced1d022c5b0935a84da2d99c6a7`；
+  App 通過 `codesign --verify --deep --strict`，ZIP 通過完整性檢查。
+- GitHub Actions Windows x64 工作 `33944432189` 通過 `45 passed`、Python
+  編譯檢查與 JavaScript 語法檢查。
 - 固定並核對 Windows FFmpeg／FFprobe、Node.js 24.20.0 與 loopback-only
   bgutil-ytdlp-pot-provider 1.3.2 後，PyInstaller 封裝版實際啟動且本機 API
   健康檢查成功。
 - 繁體中文 Inno Setup current-user 安裝程式完成靜默安裝、從安裝目錄啟動、
-  本機 API 健康檢查、Windows 使用者層登入自啟登錄的建立／移除與解除安裝；
-  解除安裝後程式目錄已移除。
-- Release 安裝檔大小為 290,794,932 bytes，SHA-256 為
-  `aea5fdb0ef78b8121c4f3019d7f26ac9fce44ff2d73a140983fa971f7f4462d1`。
+  本機 API 健康檢查、舊版登入自啟登錄的清除與解除安裝；新版未重新建立
+  登入自啟登錄，解除安裝後程式目錄已移除。
+- Windows Release 安裝檔大小為 290,815,651 bytes，SHA-256 為
+  `3a66581ba9a30beb7875aa2dc6001ac3340ca5fda01c63981f4feadd7a92df49`；
+  從 GitHub Release 重新下載後核對一致。
 - Windows 系統列、重新登入，以及實際 MP4／MP3／逐字稿仍須在乾淨的
   Windows 10／11 實機驗收；目前不得視為已簽章正式版。
