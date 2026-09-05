@@ -63,13 +63,17 @@ jobs:
         shell: pwsh
         run: |
           $Executable = (Resolve-Path "dist\YT Downloader by 學人新創\YT Downloader by 學人新創.exe").Path
-          & $Executable --ai-runtime-check
-          if ($LASTEXITCODE -ne 0) {
-            throw "Packaged AI transcript dependencies are incomplete."
-          }
           $env:YT_DATA_DIR = Join-Path $env:RUNNER_TEMP "yt-downloader-smoke-data"
           $env:YT_OUTPUT_DIR = Join-Path $env:RUNNER_TEMP "yt-downloader-smoke-output"
           $LogPath = Join-Path $env:YT_DATA_DIR "logs\desktop.log"
+
+          $AiCheck = Start-Process -FilePath $Executable -ArgumentList "--ai-runtime-check" -Wait -PassThru
+          if ($AiCheck.ExitCode -ne 0) {
+            if (Test-Path $LogPath) {
+              Get-Content -Path $LogPath -Tail 200
+            }
+            throw "Packaged AI transcript dependencies are incomplete (exit code $($AiCheck.ExitCode))."
+          }
 
           function Show-AppDiagnostics {
             Write-Host "--- packaged app processes ---"
