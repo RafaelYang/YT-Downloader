@@ -283,7 +283,16 @@ def build_quality_options(formats: list[dict], duration: float) -> list[dict]:
         if item.get('vcodec', 'none') == 'none'
         and item.get('acodec', 'none') != 'none'
     ]
-    preferred_audio_formats = [item for item in audio_formats if item.get('ext') == 'm4a']
+    preferred_audio_formats = [
+        item
+        for item in audio_formats
+        if item.get('ext') == 'm4a'
+        and str(item.get('acodec', '')).lower().startswith('mp4a')
+    ]
+    if not preferred_audio_formats:
+        preferred_audio_formats = [
+            item for item in audio_formats if item.get('ext') == 'm4a'
+        ]
     preferred_audio = max(
         preferred_audio_formats or audio_formats,
         key=lambda item: float(item.get('abr') or item.get('tbr') or 0),
@@ -314,7 +323,9 @@ def build_quality_options(formats: list[dict], duration: float) -> list[dict]:
         if item.get('acodec', 'none') == 'none' and audio_size:
             combined_size = (combined_size or 0) + audio_size
 
+        video_codec = str(item.get('vcodec', '')).lower()
         score = (
+            video_codec.startswith(('avc1', 'h264')),
             item.get('ext') == 'mp4',
             float(item.get('fps') or 0),
             float(item.get('vbr') or item.get('tbr') or 0),
@@ -338,25 +349,28 @@ def build_quality_options(formats: list[dict], duration: float) -> list[dict]:
 
 
 def quality_format_selector(height: int) -> str:
-    """Select only the requested height; never silently lower the quality."""
+    """Select the requested height and prefer QuickTime-compatible streams."""
     return (
+        f'bestvideo[height={height}][vcodec^=avc1][ext=mp4]+'
+        f'bestaudio[acodec^=mp4a][ext=m4a]/'
+        f'bestvideo[height={height}][vcodec^=avc1]+'
+        f'bestaudio[acodec^=mp4a]/'
+        f'best[height={height}][vcodec^=avc1][acodec^=mp4a][ext=mp4]/'
         f'bestvideo[height={height}][ext=mp4]+bestaudio[ext=m4a]/'
         f'bestvideo[height={height}]+bestaudio/'
         f'best[height={height}][ext=mp4]/best[height={height}]'
     )
 
 
-def probe_video_height(filepath: Path) -> int:
-    """Read the actual output height so a selected quality cannot be mislabeled."""
+def probe_media_streams(filepath: Path) -> dict[str, dict]:
+    """Read the first video and audio streams from a completed media file."""
     result = subprocess.run(
         [
             FFPROBE_PATH,
             '-v',
             'error',
-            '-select_streams',
-            'v:0',
             '-show_entries',
-            'stream=height',
+            'stream=codec_type,codec_name,pix_fmt,height',
             '-of',
             'json',
             str(filepath),
@@ -367,9 +381,106 @@ def probe_video_height(filepath: Path) -> int:
         timeout=30,
     )
     streams = json.loads(result.stdout).get('streams', [])
-    if not streams or not streams[0].get('height'):
+    return {
+        codec_type: next(
+            (stream for stream in streams if stream.get('codec_type') == codec_type),
+            {},
+        )
+        for codec_type in ('video', 'audio')
+    }
+
+
+def probe_video_height(filepath: Path) -> int:
+    """Read the actual output height so a selected quality cannot be mislabeled."""
+    video_stream = probe_media_streams(filepath)['video']
+    if not video_stream.get('height'):
         raise RuntimeError('無法確認下載影片的實際畫質。')
-    return int(streams[0]['height'])
+    return int(video_stream['height'])
+
+
+def is_playback_compatible(streams: dict[str, dict], filepath: Path) -> bool:
+    """Return whether the file is a broadly compatible H.264/AAC MP4."""
+    video = streams.get('video', {})
+    audio = streams.get('audio', {})
+    return (
+        filepath.suffix.lower() == '.mp4'
+        and video.get('codec_name') == 'h264'
+        and video.get('pix_fmt') in {'yuv420p', 'yuvj420p'}
+        and audio.get('codec_name') in {None, 'aac'}
+    )
+
+
+def ensure_playback_compatible(filepath: Path) -> tuple[Path, bool]:
+    """Convert an incompatible download to an H.264/AAC MP4 atomically."""
+    streams = probe_media_streams(filepath)
+    if is_playback_compatible(streams, filepath):
+        return filepath, False
+
+    video = streams.get('video', {})
+    audio = streams.get('audio', {})
+    target = filepath.with_suffix('.mp4')
+    temporary = filepath.parent / f'_{filepath.stem}.compatible.tmp.mp4'
+    temporary.unlink(missing_ok=True)
+
+    video_args = ['-c:v', 'copy']
+    if not (
+        video.get('codec_name') == 'h264'
+        and video.get('pix_fmt') in {'yuv420p', 'yuvj420p'}
+    ):
+        video_args = [
+            '-c:v',
+            'libx264',
+            '-preset',
+            'veryfast',
+            '-crf',
+            '20',
+            '-pix_fmt',
+            'yuv420p',
+        ]
+
+    audio_args = ['-c:a', 'copy'] if audio.get('codec_name') == 'aac' else [
+        '-c:a',
+        'aac',
+        '-b:a',
+        '192k',
+    ]
+
+    try:
+        subprocess.run(
+            [
+                FFMPEG_PATH,
+                '-y',
+                '-v',
+                'error',
+                '-i',
+                str(filepath),
+                '-map',
+                '0:v:0',
+                '-map',
+                '0:a:0?',
+                *video_args,
+                *audio_args,
+                '-movflags',
+                '+faststart',
+                str(temporary),
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        converted_streams = probe_media_streams(temporary)
+        if not is_playback_compatible(converted_streams, temporary):
+            raise RuntimeError('轉換後的影片仍不是 H.264／AAC 相容格式。')
+
+        if target != filepath:
+            target.unlink(missing_ok=True)
+        temporary.replace(target)
+        if target != filepath:
+            filepath.unlink(missing_ok=True)
+        return target, True
+    except Exception:
+        temporary.unlink(missing_ok=True)
+        raise
 
 
 def registered_output_file(job_id: str, kind: str) -> Path:
@@ -748,7 +859,7 @@ async def process_mp4(job_id: str, quality: int | None = None):
             if exc:
                 raise exc
 
-            yield sse_event({'step': 'download', 'progress': 85, 'message': '🎬 下載完成，準備檔案...'})
+            yield sse_event({'step': 'download', 'progress': 85, 'message': '🎬 下載完成，檢查播放相容性...'})
 
             # 找到下載的影片檔案
             video_file = None
@@ -769,13 +880,43 @@ async def process_mp4(job_id: str, quality: int | None = None):
                     '已取消儲存，請稍後再試。'
                 )
 
+            requires_conversion = not is_playback_compatible(
+                probe_media_streams(video_file),
+                video_file,
+            )
+            if requires_conversion:
+                compatibility_future = loop.run_in_executor(
+                    None,
+                    ensure_playback_compatible,
+                    video_file,
+                )
+                while not compatibility_future.done():
+                    yield sse_event({
+                        'step': 'download',
+                        'progress': 90,
+                        'message': '🎬 正在轉換成 Mac／Windows 相容格式...',
+                    })
+                    await asyncio.sleep(1.2)
+                video_file, converted = await compatibility_future
+            else:
+                converted = False
+
+            actual_height = probe_video_height(video_file)
+            if actual_height != selected_quality:
+                video_file.unlink(missing_ok=True)
+                raise RuntimeError('相容格式轉換後的畫質與選擇不符。')
+
             video_file, saved_to = publish_completed_file(job_id, 'mp4', video_file)
             file_size = format_bytes(video_file.stat().st_size)
 
             yield sse_event({
                 'step': 'done',
                 'progress': 100,
-                'message': f'✅ {selected_quality}p MP4 下載完成！',
+                'message': (
+                    f'✅ {selected_quality}p MP4 下載完成！'
+                    if not converted
+                    else f'✅ {selected_quality}p MP4 已轉為相容格式！'
+                ),
                 'download_url': f'/api/file/{job_id}/mp4',
                 'preview_url': f'/api/preview/{job_id}/mp4',
                 'filename': video_file.name,

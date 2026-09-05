@@ -13,10 +13,10 @@
 
 ## 下載安裝程式
 
-最新的雙平台安裝檔集中在 [GitHub Release v0.1.1-dev](https://github.com/RafaelYang/YT-Downloader/releases/tag/v0.1.1-dev)：
+最新的雙平台安裝檔集中在 [GitHub Release v0.1.2-dev](https://github.com/RafaelYang/YT-Downloader/releases/tag/v0.1.2-dev)：
 
-- macOS Apple Silicon：`YT-Downloader-0.1.1-dev-macOS-arm64.zip`
-- Windows 10／11 x64：`YT-Downloader-0.1.1-dev-Windows-x64-Setup.exe`
+- macOS Apple Silicon：`YT-Downloader-0.1.2-dev-macOS-arm64.zip`
+- Windows 10／11 x64：`YT-Downloader-0.1.2-dev-Windows-x64-Setup.exe`
 
 GitHub 會直接在兩個安裝檔右側顯示 SHA-256。頁面最下方的 `Source code
 (zip)` 與 `Source code (tar.gz)` 是 GitHub 自動產生的原始碼，不是安裝檔；
@@ -37,14 +37,15 @@ GitHub 會直接在兩個安裝檔右側顯示 SHA-256。頁面最下方的 `Sou
 - `dist/` 已產出約 884 MB 的 `.app` 與 307,641,726 bytes 的 ZIP 開發預覽。
 - Windows 10／11 x64 current-user 安裝程式已在 GitHub `windows-2022` Runner
   完成建置、封裝版啟動及安裝／啟動／解除安裝生命週期測試。
+- MP4 會優先使用 H.264／AAC；若所選畫質只有 AV1／VP9，儲存前會自動
+  轉為 H.264／AAC MP4，避免 QuickTime 只播放聲音。
 - 主程式自動更新、SQLite 背景工作與正式 Developer ID 公證尚未完成。
 - Windows 預覽版尚未簽章，並仍待乾淨 Windows 10／11 實機完成功能驗收。
 
 ## 開發環境
 
-專案現有 `.venv` 曾從另一個資料夾搬移，所以請使用
-`.venv/bin/python -m ...`；不要直接執行 `.venv/bin/yt-dlp` 或
-`.venv/bin/pyinstaller`，它們的 shebang 仍可能指向舊路徑。
+建議在專案根目錄建立 `.venv`，並使用 `.venv/bin/python -m ...`
+執行 Python 工具，避免依賴系統 Python 環境。
 
 安裝依賴：
 
@@ -84,7 +85,7 @@ scripts/build_macos.sh
 輸出位置：
 
 - `dist/YT Downloader by 學人新創.app`
-- `dist/YT-Downloader-0.1.1-dev-macOS-arm64.zip`
+- `dist/YT-Downloader-0.1.2-dev-macOS-arm64.zip`
 
 這個預覽包在目前開發機上採 ad-hoc 簽章。正式給一般使用者下載前，仍須
 使用學人新創的 Apple Developer ID 對 App 與內含執行檔重新簽章、送 Apple
@@ -98,7 +99,7 @@ x64 與 macOS 13 以上 Apple Silicon 版本；Intel Mac 尚無可安裝版本�
 
 Windows：
 
-1. 下載 `YT-Downloader-0.1.1-dev-Windows-x64-Setup.exe` 並執行。
+1. 下載 `YT-Downloader-0.1.2-dev-Windows-x64-Setup.exe` 並執行。
 2. 安裝在目前使用者的 Local AppData，不需要管理員權限；安裝完成後可由桌面
    或開始功能表啟動，程式會常駐系統列。
 3. 預覽版尚未簽章，因此 SmartScreen 可能顯示「未知的發行者」；只應從此私人
@@ -193,3 +194,13 @@ YouTube 可能依影片、帳號或網路環境限制擷取。請只處理自己
   從 GitHub Release 重新下載後核對一致。
 - Windows 系統列、重新登入，以及實際 MP4／MP3／逐字稿仍須在乾淨的
   Windows 10／11 實機驗收；目前不得視為已簽章正式版。
+
+## 2026-09-05 影片相容性修正
+
+- 重現 QuickTime 只播放聲音的檔案為 AV1 視訊與 AAC 音訊，不是下載檔損壞。
+- 畫質選擇器改為同解析度下優先 H.264／AAC，不會為了相容性降低畫質。
+- 完成後再用 FFprobe 核對畫質、編碼與像素格式；AV1／VP9 或非 AAC 音訊
+  會以內附 FFmpeg 轉成 H.264／AAC、yuv420p 的 MP4 後才發布。
+- `48 passed`，並以合成 AV1／Opus 影片驗證自動轉檔與完整解碼。
+- `0.1.2-dev` macOS 封裝版實際解析及下載 YouTube 公開測試片，成品為
+  H.264／AAC、yuv420p MP4，高度、檔名、儲存目錄與全片解碼均通過。

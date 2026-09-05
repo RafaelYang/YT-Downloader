@@ -2,7 +2,7 @@
 
 Windows 與 macOS 桌面版產品與技術設計 v1
 
-狀態：Apple Silicon 與 Windows x64 `0.1.1-dev` 開發預覽已完成建置。Mac 版已在 Apple M2 Pro 驗證手動啟動與舊版 LaunchAgent 清理；Windows 版已在 GitHub Windows Runner 通過封裝版啟動、舊版登入自啟清理及安裝／啟動／解除安裝測試，但尚待乾淨 Windows 10／11 實機功能驗收。Developer ID 公證、Windows 程式碼簽章與自動更新仍未完成，因此還不是正式公開版。
+狀態：Apple Silicon 與 Windows x64 `0.1.2-dev` 開發預覽進入建置驗證。Mac 版已在 Apple M2 Pro 驗證手動啟動與舊版 LaunchAgent 清理；Windows 版已在 GitHub Windows Runner 通過封裝版啟動、舊版登入自啟清理及安裝／啟動／解除安裝測試，但尚待乾淨 Windows 10／11 實機功能驗收。Developer ID 公證、Windows 程式碼簽章與自動更新仍未完成，因此還不是正式公開版。
 
 截至 2026-09-05 的實作進度：
 
@@ -13,6 +13,8 @@ Windows 與 macOS 桌面版產品與技術設計 v1
 - 已納入固定版本與雜湊的 Node.js 24.20.0 arm64，以及只監聽 loopback 的
   bgutil-ytdlp-pot-provider 1.3.2 高畫質相容層。
 - 已完成預設最高畫質、各畫質預估大小、實際輸出高度核對與本機 MP4 預覽。
+- MP4 儲存前會核對編碼，優先 H.264／AAC；AV1／VP9 會自動轉為
+  H.264／AAC MP4，以相容 macOS QuickTime 與 Windows 常見播放器。
 - 已在封裝後 App 端到端驗證 MP4、MP3 與 Whisper `small` MPS 逐字稿。
 - 已完成 Windows x64 PyInstaller 封裝、系統列、舊版登入自啟清理與繁中
   Inno Setup 安裝程式；Windows Runner 已通過完整安裝生命週期測試。
@@ -60,7 +62,7 @@ Windows 與 macOS 桌面版產品與技術設計 v1
 
 ### 第一次安裝
 
-1. Windows 使用者執行 `YT-Downloader-0.1.1-dev-Windows-x64-Setup.exe`；Mac 使用者解壓縮 ZIP 並將 App 放入「應用程式」。
+1. Windows 使用者執行 `YT-Downloader-0.1.2-dev-Windows-x64-Setup.exe`；Mac 使用者解壓縮 ZIP 並將 App 放入「應用程式」。
 2. 首次啟動顯示授權資訊，並清除舊預覽版可能留下的登入自動啟動設定。
 3. Windows 安裝至使用者的 Local AppData，不要求系統管理員權限；macOS 使用標準 `.app` bundle。
 4. 首次啟動完成環境檢查，背景下載尚未安裝的語音模型並顯示進度。

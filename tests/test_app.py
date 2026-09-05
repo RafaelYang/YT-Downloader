@@ -206,9 +206,97 @@ def test_quality_options_include_audio_and_default_to_highest():
 
 def test_quality_format_selector_never_silently_falls_back_to_lower_height():
     selector = app_module.quality_format_selector(720)
-    assert selector.startswith("bestvideo[height=720][ext=mp4]")
+    assert selector.startswith(
+        "bestvideo[height=720][vcodec^=avc1][ext=mp4]+"
+        "bestaudio[acodec^=mp4a][ext=m4a]"
+    )
     assert "height<=720" not in selector
     assert "height=720" in selector
+
+
+def test_quality_options_prefer_h264_estimate_at_the_same_height():
+    formats = [
+        {
+            "ext": "m4a",
+            "vcodec": "none",
+            "acodec": "mp4a.40.2",
+            "filesize": 1_000_000,
+        },
+        {
+            "ext": "mp4",
+            "height": 1080,
+            "vcodec": "av01.0.08M.08",
+            "acodec": "none",
+            "fps": 60,
+            "filesize": 8_000_000,
+        },
+        {
+            "ext": "mp4",
+            "height": 1080,
+            "vcodec": "avc1.640028",
+            "acodec": "none",
+            "fps": 30,
+            "filesize": 12_000_000,
+        },
+    ]
+
+    options = app_module.build_quality_options(formats, duration=60)
+
+    assert options[0]["height"] == 1080
+    assert options[0]["estimated_size_bytes"] == 13_000_000
+
+
+def test_compatible_h264_aac_mp4_is_not_rewritten(tmp_path, monkeypatch):
+    source = tmp_path / "video.mp4"
+    source.write_bytes(b"already compatible")
+    monkeypatch.setattr(
+        app_module,
+        "probe_media_streams",
+        lambda path: {
+            "video": {"codec_name": "h264", "pix_fmt": "yuv420p", "height": 1080},
+            "audio": {"codec_name": "aac"},
+        },
+    )
+
+    result, converted = app_module.ensure_playback_compatible(source)
+
+    assert result == source
+    assert converted is False
+    assert source.read_bytes() == b"already compatible"
+
+
+def test_av1_download_is_atomically_converted_to_h264_aac(tmp_path, monkeypatch):
+    source = tmp_path / "video.webm"
+    source.write_bytes(b"av1 source")
+    calls = []
+
+    def fake_probe(path):
+        if path.name.endswith("compatible.tmp.mp4"):
+            return {
+                "video": {"codec_name": "h264", "pix_fmt": "yuv420p", "height": 1080},
+                "audio": {"codec_name": "aac"},
+            }
+        return {
+            "video": {"codec_name": "av1", "pix_fmt": "yuv420p", "height": 1080},
+            "audio": {"codec_name": "opus"},
+        }
+
+    def fake_run(command, **kwargs):
+        calls.append(command)
+        Path(command[-1]).write_bytes(b"converted mp4")
+
+    monkeypatch.setattr(app_module, "probe_media_streams", fake_probe)
+    monkeypatch.setattr(app_module.subprocess, "run", fake_run)
+
+    result, converted = app_module.ensure_playback_compatible(source)
+
+    assert result == tmp_path / "video.mp4"
+    assert converted is True
+    assert result.read_bytes() == b"converted mp4"
+    assert not source.exists()
+    assert "libx264" in calls[0]
+    assert "aac" in calls[0]
+    assert "yuv420p" in calls[0]
 
 
 def test_download_strategy_prefers_pot_provider_when_available(monkeypatch):
