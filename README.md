@@ -13,18 +13,21 @@
 
 ## 下載安裝程式
 
-最新的雙平台安裝檔集中在 [GitHub Release v0.1.2-dev](https://github.com/RafaelYang/YT-Downloader/releases/tag/v0.1.2-dev)：
+一般使用者請從 [YT-Downloader Google 雲端硬碟](https://drive.google.com/drive/folders/1Y4tBWJJzqqnewNeZWbWIeTxHY1m-3Kg4)
+下載最新的雙平台安裝檔：
 
 - macOS Apple Silicon：`YT-Downloader-0.1.2-dev-macOS-arm64.zip`
 - Windows 10／11 x64：`YT-Downloader-0.1.2-dev-Windows-x64-Setup.exe`
 
-GitHub 會直接在兩個安裝檔右側顯示 SHA-256。頁面最下方的 `Source code
-(zip)` 與 `Source code (tar.gz)` 是 GitHub 自動產生的原始碼，不是安裝檔；
-一般使用者不需要下載。
+私人 [GitHub Release v0.1.2-dev](https://github.com/RafaelYang/YT-Downloader/releases/tag/v0.1.2-dev)
+保留給受邀的開發與測試成員，GitHub 會在安裝檔右側顯示 SHA-256。
+頁面最下方的 `Source code (zip)` 與 `Source code (tar.gz)` 是 GitHub 自動產生的
+原始碼，不是安裝檔；一般使用者不需要下載。
 
-本機重新下載的測試包統一放在「下載項目 → YT Downloader 安裝程式 →
-版本號」資料夾，與程式產生的影片資料夾分開。此 GitHub 專案目前是私人專案，
-只有已獲邀加入專案的 GitHub 帳號能開啟 Release 與下載檔案。
+本機重新下載的測試包統一放在「下載項目 → YT Downloader Google Drive 上傳 →
+版本號」資料夾，與程式產生的影片資料夾分開。此 GitHub 專案保持私人，
+只有已獲邀的 GitHub 帳號能開啟原始碼與 Release；Google Drive 資料夾則供
+知道連結的使用者唯讀下載安裝檔。
 
 ## 目前狀態
 
@@ -34,7 +37,7 @@ GitHub 會直接在兩個安裝檔右側顯示 SHA-256。頁面最下方的 `Sou
 - FFmpeg 9.0.1 arm64 已固定版本與 SHA-256，可納入開發預覽 App。
 - 高畫質相容層使用固定版本的 Node.js 24.20.0 arm64 與
   bgutil-ytdlp-pot-provider 1.3.2；內部服務只監聽隨機 `127.0.0.1` 連接埠。
-- `dist/` 已產出約 884 MB 的 `.app` 與 307,641,726 bytes 的 ZIP 開發預覽。
+- `dist/` 已產出約 1.0 GB 的 `.app` 與 353,668,609 bytes 的 ZIP 開發預覽。
 - Windows 10／11 x64 current-user 安裝程式已在 GitHub `windows-2022` Runner
   完成建置、封裝版啟動及安裝／啟動／解除安裝生命週期測試。
 - MP4 會優先使用 H.264／AAC；若所選畫質只有 AV1／VP9，儲存前會自動
@@ -204,3 +207,12 @@ YouTube 可能依影片、帳號或網路環境限制擷取。請只處理自己
 - `48 passed`，並以合成 AV1／Opus 影片驗證自動轉檔與完整解碼。
 - `0.1.2-dev` macOS 封裝版實際解析及下載 YouTube 公開測試片，成品為
   H.264／AAC、yuv420p MP4，高度、檔名、儲存目錄與全片解碼均通過。
+- 使用回報問題的同一支 8:12 影片重新下載 1080p，輸出為 1920×1080、
+  H.264／AAC、yuv420p；FFmpeg 全片解碼與 macOS Quick Look 縮圖產生均成功。
+- macOS ZIP 大小為 353,668,609 bytes，SHA-256 為
+  `a2899cb07b20d1bc8c4c851975f15f252b11c8e88fba4c7b8ea15c96e3aa5b7f`；
+  App 通過 `codesign --verify --deep --strict`，ZIP 通過完整性檢查。
+- GitHub Actions Windows x64 工作 `33957014788` 通過 `48 passed`、封裝後啟動、
+  Inno Setup 安裝、手動啟動、舊版登入自啟清理與解除安裝生命週期。
+- Windows 安裝檔大小為 290,790,989 bytes，SHA-256 為
+  `c6d06beaea88a4f7500b138089c3d0790881c896989ef6b1f62d0e48e71210c0`。
