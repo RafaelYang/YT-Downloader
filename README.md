@@ -11,6 +11,18 @@
 `影片標題_影片_畫質.mp4`、`影片標題_音檔.mp3` 與
 `影片標題_逐字稿.txt`。
 
+## 下載安裝程式
+
+最新的雙平台安裝檔集中在 [GitHub Release v0.1.1-dev](https://github.com/RafaelYang/YT-Downloader/releases/tag/v0.1.1-dev)：
+
+- macOS Apple Silicon：`YT-Downloader-0.1.1-dev-macOS-arm64.zip`
+- Windows 10／11 x64：`YT-Downloader-0.1.1-dev-Windows-x64-Setup.exe`
+- 完整性核對：`SHA256SUMS.txt`
+
+本機重新下載的測試包統一放在「下載項目 → YT Downloader 安裝程式 →
+版本號」資料夾，與程式產生的影片資料夾分開。此 GitHub 專案目前是私人專案，
+只有已獲邀加入專案的 GitHub 帳號能開啟 Release 與下載檔案。
+
 ## 目前狀態
 
 - 網頁核心可在 Windows 與 macOS 本機執行。
