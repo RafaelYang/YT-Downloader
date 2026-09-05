@@ -5,7 +5,7 @@
 Windows 使用者不需要安裝 Python、FFmpeg、Node.js 或 Tailscale。
 
 1. 從私人 GitHub 專案的 Releases 下載
-   `YT-Downloader-0.1.2-dev-Windows-x64-Setup.exe`。
+   `YT-Downloader-0.1.3-dev-Windows-x64-Setup.exe`。
 2. 執行安裝程式。安裝位置預設為目前使用者的 Local AppData，因此不需要
    系統管理員權限。
 3. 安裝完成後啟動 App。操作頁面會在預設瀏覽器開啟，背景程式則常駐於
@@ -18,7 +18,8 @@ Windows 使用者不需要安裝 Python、FFmpeg、Node.js 或 Tailscale。
 ### 系統需求
 
 - Windows 10／11 x64。
-- 第一次產生逐字稿時需要網路下載 Whisper `small` 模型。
+- 第一次產生逐字稿時需要網路下載 Whisper `turbo` 模型；英文雙語模式還會
+  下載離線英中翻譯模型。之後可直接使用本機快取。
 - 使用期間電腦必須保持開機；成品只會儲存在使用者自己的「下載」資料夾。
 
 ### 系統列功能
@@ -67,7 +68,7 @@ SHA-256，避免依賴建置機是否預先安裝額外語言包。
 安裝程式輸出：
 
 ```text
-dist\installer\YT-Downloader-0.1.2-dev-Windows-x64-Setup.exe
+dist\installer\YT-Downloader-0.1.3-dev-Windows-x64-Setup.exe
 ```
 
 GitHub Actions 的 `Build Windows preview` 工作會在 `windows-2022` x64 環境

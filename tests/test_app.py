@@ -156,6 +156,9 @@ def test_static_ids_match_frontend_lookup():
     assert '<select' not in html
     assert "預估值可能因 YouTube 串流合併而略有差異" not in html
     assert 'id="video-preview"' in html
+    assert 'id="transcript-language-zh"' in html
+    assert 'id="transcript-language-en"' in html
+    assert 'role="radiogroup"' in html
     assert 'id="reset-btn"' not in html
     assert "再下載一個" not in html
 
@@ -356,6 +359,51 @@ def test_output_stems_prefix_video_title_and_identify_file_type():
     assert app_module.output_stem(title, "mp4", 720) == "教學_剪輯_入門_影片_720p"
     assert app_module.output_stem(title, "mp3") == "教學_剪輯_入門_音檔"
     assert app_module.output_stem(title, "transcript") == "教學_剪輯_入門_逐字稿"
+    assert (
+        app_module.output_stem(title, "transcript", transcript_language="zh-TW")
+        == "教學_剪輯_入門_逐字稿_繁中"
+    )
+    assert (
+        app_module.output_stem(title, "transcript", transcript_language="en")
+        == "教學_剪輯_入門_逐字稿_英文雙語"
+    )
+
+
+def test_transcript_rendering_uses_timestamps_and_traditional_chinese():
+    segments = [
+        {"start": 1.2, "end": 4.8, "text": "这个视频解释了软件。"},
+        {"start": 65.0, "end": 70.0, "text": "点击下载按钮。"},
+    ]
+
+    rendered = app_module.render_transcript("測試", "zh-TW", segments)
+
+    assert "語言：繁體中文分段" in rendered
+    assert "[00:01 → 00:05]\n這個影片解釋了軟體。" in rendered
+    assert "[01:05 → 01:10]\n點選下載按鈕。" in rendered
+
+
+def test_english_transcript_places_english_before_chinese_for_every_segment():
+    segments = [
+        {"start": 0.0, "end": 2.0, "text": "Hello everyone."},
+        {"start": 2.0, "end": 5.0, "text": "Welcome to class."},
+    ]
+    translations = ["大家好。", "歡迎來上課。"]
+
+    rendered = app_module.render_transcript("Class", "en", segments, translations)
+
+    assert rendered.index("英文：Hello everyone.") < rendered.index("中文：大家好。")
+    assert rendered.index("英文：Welcome to class.") < rendered.index("中文：歡迎來上課。")
+    assert rendered.count("英文：") == rendered.count("中文：") == 2
+
+
+def test_transcript_endpoint_rejects_unsupported_language(monkeypatch):
+    monkeypatch.setattr(app_module, "resolved_jobs", {"1234abcd": {"title": "test"}})
+    client = TestClient(app_module.app, base_url="http://127.0.0.1")
+
+    response = client.get("/api/process-transcript/1234abcd?language=fr")
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "逐字稿語言只支援繁體中文或英文雙語"
 
 
 def test_desktop_outputs_for_one_job_share_timestamp_folder(tmp_path, monkeypatch):

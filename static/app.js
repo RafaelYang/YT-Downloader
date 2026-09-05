@@ -19,11 +19,15 @@ const qualityDialogBackdrop = qualityDialog.querySelector('.quality-dialog-backd
 const qualityOptions = document.getElementById('quality-options');
 const videoPreviewPanel = document.getElementById('video-preview-panel');
 const videoPreview = document.getElementById('video-preview');
+const transcriptLanguageOptions = Array.from(
+    document.querySelectorAll('.transcript-language-option'),
+);
 
 // 目前的 job_id（解析後取得）
 let currentJobId = null;
 let availableQualities = [];
 let selectedQualityHeight = '';
+let selectedTranscriptLanguage = 'zh-TW';
 const activeTasks = new Set();
 
 // ── 解析影片 ──
@@ -104,6 +108,8 @@ function startTask(type) {
     if (type === 'mp4') {
         closeQualityDialog(false);
         qualityTrigger.disabled = true;
+    } else if (type === 'transcript') {
+        transcriptLanguageOptions.forEach((option) => { option.disabled = true; });
     }
 
     // 設定按鈕為 loading 狀態
@@ -122,6 +128,8 @@ function startTask(type) {
     let apiPath = `/api/process-${type}/${currentJobId}`;
     if (type === 'mp4' && selectedQualityHeight) {
         apiPath += `?quality=${encodeURIComponent(selectedQualityHeight)}`;
+    } else if (type === 'transcript') {
+        apiPath += `?language=${encodeURIComponent(selectedTranscriptLanguage)}`;
     }
 
     // 開始 SSE 連線
@@ -243,7 +251,32 @@ function finishTask(type) {
     activeTasks.delete(type);
     if (type === 'mp4') {
         qualityTrigger.disabled = availableQualities.length === 0;
+    } else if (type === 'transcript') {
+        transcriptLanguageOptions.forEach((option) => { option.disabled = false; });
     }
+}
+
+
+function selectTranscriptLanguage(language) {
+    if (activeTasks.has('transcript')) return;
+    selectedTranscriptLanguage = language;
+    transcriptLanguageOptions.forEach((option) => {
+        option.setAttribute(
+            'aria-checked',
+            option.dataset.language === selectedTranscriptLanguage ? 'true' : 'false',
+        );
+    });
+
+    const resultActions = document.getElementById('result-actions-transcript');
+    const preview = document.getElementById('preview-transcript');
+    const size = document.getElementById('size-transcript');
+    const button = document.getElementById('btn-transcript');
+    resultActions.style.display = 'none';
+    preview.style.display = 'none';
+    preview.textContent = '';
+    size.textContent = '';
+    button.querySelector('.btn-action-text').textContent = '🧠 產生';
+    document.getElementById('card-transcript').classList.remove('done');
 }
 
 
@@ -369,6 +402,14 @@ function resetAllCards() {
     videoPreview.removeAttribute('src');
     videoPreview.load();
     videoPreviewPanel.style.display = 'none';
+    selectedTranscriptLanguage = 'zh-TW';
+    transcriptLanguageOptions.forEach((option) => {
+        option.disabled = false;
+        option.setAttribute(
+            'aria-checked',
+            option.dataset.language === selectedTranscriptLanguage ? 'true' : 'false',
+        );
+    });
 
     ['mp4', 'mp3', 'transcript'].forEach(type => {
         const btn = document.getElementById(`btn-${type}`);
@@ -476,6 +517,10 @@ qualityDialog.addEventListener('keydown', (event) => {
         const options = qualityOptions.querySelectorAll('[role="option"]');
         options[options.length - 1]?.focus();
     }
+});
+
+transcriptLanguageOptions.forEach((option) => {
+    option.addEventListener('click', () => selectTranscriptLanguage(option.dataset.language));
 });
 
 urlInput.addEventListener('keydown', (e) => {

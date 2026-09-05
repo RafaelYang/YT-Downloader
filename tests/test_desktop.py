@@ -5,6 +5,7 @@ from pathlib import Path
 from desktop_app import (
     InstanceLock,
     configure_frozen_stdio,
+    check_ai_runtime_cli,
     create_macos_reopen_delegate,
     health_url,
     launch_url,
@@ -124,6 +125,10 @@ def test_remove_macos_legacy_autostart_and_preference(tmp_path, monkeypatch):
 def test_remove_legacy_autostart_cli_rejects_unsupported_platform(monkeypatch):
     monkeypatch.setattr(desktop_app.sys, "platform", "linux")
     assert remove_legacy_autostart_cli() == 2
+
+
+def test_ai_runtime_check_loads_translation_and_traditional_chinese_dependencies():
+    assert check_ai_runtime_cli() == 0
 
 
 def test_local_urls_do_not_expose_token_in_health_endpoint():

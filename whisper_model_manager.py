@@ -59,9 +59,13 @@ def download_verified_model(
     url: str,
     destination: Path,
     expected_sha256: str,
-    curl_path: Path = Path("/usr/bin/curl"),
+    curl_path: Path | None = None,
+    model_label: str = "Whisper 模型",
 ) -> Path:
     """Download with certificate verification, then atomically install the model."""
+    if curl_path is None:
+        discovered_curl = shutil.which("curl.exe") or shutil.which("curl")
+        curl_path = Path(discovered_curl) if discovered_curl else Path("/usr/bin/curl")
     destination.parent.mkdir(parents=True, exist_ok=True)
     temporary = destination.with_name(
         f".{destination.name}.{uuid.uuid4().hex}.download"
@@ -98,7 +102,7 @@ def download_verified_model(
         return destination
     except Exception as exc:
         temporary.unlink(missing_ok=True)
-        raise RuntimeError(f"Whisper 模型下載失敗：{exc}") from exc
+        raise RuntimeError(f"{model_label}下載失敗：{exc}") from exc
 
 
 def ensure_whisper_model(
@@ -109,7 +113,10 @@ def ensure_whisper_model(
 ) -> Path:
     """Reuse a verified model cache or securely download a fresh model."""
     expected_sha256 = expected_hash_from_url(model_url)
-    destination = model_directory / f"{model_name}.pt"
+    model_filename = Path(urlparse(model_url).path).name
+    if not model_filename:
+        raise ValueError("Whisper 模型網址缺少檔名")
+    destination = model_directory / model_filename
     if is_verified_model(destination, expected_sha256):
         return destination
 
@@ -118,8 +125,15 @@ def ensure_whisper_model(
         if legacy_cache_directory is None
         else legacy_cache_directory
     )
-    legacy = legacy_cache_directory / f"{model_name}.pt"
-    if is_verified_model(legacy, expected_sha256):
+    legacy_candidates = [
+        legacy_cache_directory / model_filename,
+        legacy_cache_directory / f"{model_name}.pt",
+    ]
+    legacy = next(
+        (path for path in legacy_candidates if is_verified_model(path, expected_sha256)),
+        None,
+    )
+    if legacy is not None:
         model_directory.mkdir(parents=True, exist_ok=True)
         temporary = destination.with_name(
             f".{destination.name}.{uuid.uuid4().hex}.copy"

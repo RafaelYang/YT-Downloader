@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from PyInstaller.utils.hooks import collect_data_files
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 
 PROJECT_ROOT = Path(SPECPATH).resolve().parent
@@ -21,6 +21,7 @@ datas = [
     ),
 ]
 datas += collect_data_files("whisper")
+datas += collect_data_files("opencc")
 
 binaries = [
     (str(PROJECT_ROOT / "vendor" / "macos-arm64" / "ffmpeg"), "tools"),
@@ -53,6 +54,13 @@ hiddenimports = [
     "uvicorn.loops.auto",
     "uvicorn.protocols.http.auto",
     "uvicorn.protocols.websockets.auto",
+    "sentencepiece",
+    "sacremoses",
+]
+hiddenimports += [
+    module
+    for module in collect_submodules("transformers.models.marian")
+    if ".modeling_flax_" not in module and ".modeling_tf_" not in module
 ]
 
 a = Analysis(
@@ -64,6 +72,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
+    module_collection_mode={"torch._numpy": "py"},
     excludes=["_pytest", "httpx", "IPython", "matplotlib", "pytest", "tensorboard"],
     noarchive=False,
     optimize=0,
@@ -103,8 +112,8 @@ app = BUNDLE(
     info_plist={
         "CFBundleDisplayName": APP_NAME,
         "CFBundleName": APP_NAME,
-        "CFBundleShortVersionString": "0.1.1",
-        "CFBundleVersion": "2",
+        "CFBundleShortVersionString": "0.1.3",
+        "CFBundleVersion": "3",
         "LSMinimumSystemVersion": "13.0",
         "LSUIElement": True,
         "NSHighResolutionCapable": True,

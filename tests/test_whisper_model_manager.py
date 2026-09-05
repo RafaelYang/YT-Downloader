@@ -60,3 +60,18 @@ def test_download_verified_model_rejects_bad_content(tmp_path, monkeypatch):
             curl_path=fake_curl,
         )
     assert not (tmp_path / "small.pt").exists()
+
+
+def test_ensure_whisper_model_uses_publisher_filename_for_alias(tmp_path):
+    content = b"verified turbo model"
+    digest = hashlib.sha256(content).hexdigest()
+    url = f"https://models.example.test/{digest}/large-v3-turbo.pt"
+    legacy = tmp_path / "legacy"
+    destination = tmp_path / "app-models"
+    legacy.mkdir()
+    (legacy / "large-v3-turbo.pt").write_bytes(content)
+
+    result = manager.ensure_whisper_model("turbo", url, destination, legacy)
+
+    assert result == destination / "large-v3-turbo.pt"
+    assert result.read_bytes() == content

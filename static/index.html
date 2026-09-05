@@ -138,7 +138,17 @@
                 <div class="action-card" id="card-transcript">
                     <div class="action-icon">📝</div>
                     <div class="action-title">AI 逐字稿</div>
-                    <div class="action-desc">Whisper 語音辨識</div>
+                    <div class="action-desc">高品質辨識・時間碼分段</div>
+                    <div class="transcript-language-control" role="radiogroup" aria-label="逐字稿語言">
+                        <button class="transcript-language-option" id="transcript-language-zh" type="button" role="radio" aria-checked="true" data-language="zh-TW">
+                            <strong>繁體中文</strong>
+                            <small>分段逐字稿</small>
+                        </button>
+                        <button class="transcript-language-option" id="transcript-language-en" type="button" role="radio" aria-checked="false" data-language="en">
+                            <strong>English</strong>
+                            <small>英文＋繁中</small>
+                        </button>
+                    </div>
                     <button class="btn-action" id="btn-transcript" onclick="startTask('transcript')">
                         <span class="btn-action-text">🧠 產生</span>
                         <span class="btn-action-loading" style="display:none;">
@@ -154,7 +164,7 @@
                         <button class="btn-open-folder" id="open-folder-transcript" type="button" onclick="openOutputFolder('transcript')">📂 開啟資料夾</button>
                     </div>
                     <span class="result-size" id="size-transcript"></span>
-                    <p class="transcript-preview" id="preview-transcript" style="display:none;"></p>
+                    <pre class="transcript-preview" id="preview-transcript" style="display:none;"></pre>
                 </div>
             </div>
 

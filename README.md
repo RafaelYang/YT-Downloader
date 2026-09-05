@@ -1,7 +1,9 @@
 # YT Downloader by 學人新創
 
 在使用者自己的電腦上執行的 YouTube 公開影片處理工具。目前功能包括
-可選畫質的 MP4、MP3 與本機 Whisper 逐字稿。MP4 預設選最高畫質，每個
+可選畫質的 MP4、MP3 與本機 AI 逐字稿。逐字稿可選繁體中文或
+English＋繁中，兩者都有時間碼分段；英文模式每段先顯示英文原文，再顯示
+繁中翻譯。MP4 預設選最高畫質，每個
 選項會顯示 yt-dlp 中繼資料估算的合併檔案大小；完成後可直接在頁面中從
 本機預覽，不會將成品上傳雲端。請只處理自己擁有、已獲授權或平台允許
 下載的內容。
@@ -9,17 +11,17 @@
 桌面版完成處理後會直接存入「下載項目」的 `影片標題_日期時間` 資料夾，並提供
 「📂 開啟資料夾」按鈕直接用系統檔案管理員開啟該次成品位置。成品檔名統一為
 `影片標題_影片_畫質.mp4`、`影片標題_音檔.mp3` 與
-`影片標題_逐字稿.txt`。
+`影片標題_逐字稿_繁中.txt` 或 `影片標題_逐字稿_英文雙語.txt`。
 
 ## 下載安裝程式
 
 一般使用者請從 [YT-Downloader Google 雲端硬碟](https://drive.google.com/drive/folders/1Y4tBWJJzqqnewNeZWbWIeTxHY1m-3Kg4)
 下載最新的雙平台安裝檔：
 
-- macOS Apple Silicon：`YT-Downloader-0.1.2-dev-macOS-arm64.zip`
-- Windows 10／11 x64：`YT-Downloader-0.1.2-dev-Windows-x64-Setup.exe`
+- macOS Apple Silicon：`YT-Downloader-0.1.3-dev-macOS-arm64.zip`
+- Windows 10／11 x64：`YT-Downloader-0.1.3-dev-Windows-x64-Setup.exe`
 
-私人 [GitHub Release v0.1.2-dev](https://github.com/RafaelYang/YT-Downloader/releases/tag/v0.1.2-dev)
+私人 [GitHub Release v0.1.3-dev](https://github.com/RafaelYang/YT-Downloader/releases/tag/v0.1.3-dev)
 保留給受邀的開發與測試成員，GitHub 會在安裝檔右側顯示 SHA-256。
 頁面最下方的 `Source code (zip)` 與 `Source code (tar.gz)` 是 GitHub 自動產生的
 原始碼，不是安裝檔；一般使用者不需要下載。
@@ -42,6 +44,8 @@
   完成建置、封裝版啟動及安裝／啟動／解除安裝生命週期測試。
 - MP4 會優先使用 H.264／AAC；若所選畫質只有 AV1／VP9，儲存前會自動
   轉為 H.264／AAC MP4，避免 QuickTime 只播放聲音。
+- 逐字稿使用 Whisper `turbo`；繁中模式會轉成台灣繁體用字，英文模式另用
+  本機英中模型逐段翻譯，不需付費 API。
 - 主程式自動更新、SQLite 背景工作與正式 Developer ID 公證尚未完成。
 - Windows 預覽版尚未簽章，並仍待乾淨 Windows 10／11 實機完成功能驗收。
 
@@ -88,7 +92,7 @@ scripts/build_macos.sh
 輸出位置：
 
 - `dist/YT Downloader by 學人新創.app`
-- `dist/YT-Downloader-0.1.2-dev-macOS-arm64.zip`
+- `dist/YT-Downloader-0.1.3-dev-macOS-arm64.zip`
 
 這個預覽包在目前開發機上採 ad-hoc 簽章。正式給一般使用者下載前，仍須
 使用學人新創的 Apple Developer ID 對 App 與內含執行檔重新簽章、送 Apple
@@ -102,7 +106,7 @@ x64 與 macOS 13 以上 Apple Silicon 版本；Intel Mac 尚無可安裝版本�
 
 Windows：
 
-1. 下載 `YT-Downloader-0.1.2-dev-Windows-x64-Setup.exe` 並執行。
+1. 下載 `YT-Downloader-0.1.3-dev-Windows-x64-Setup.exe` 並執行。
 2. 安裝在目前使用者的 Local AppData，不需要管理員權限；安裝完成後可由桌面
    或開始功能表啟動，程式會常駐系統列。
 3. 預覽版尚未簽章，因此 SmartScreen 可能顯示「未知的發行者」；只應從此私人
@@ -116,7 +120,8 @@ macOS：
    「打開」；若系統仍攔截，可到「系統設定 → 隱私權與安全性」選擇允許打開。
 3. App 只會在使用者手動開啟後於選單列常駐，不會隨登入 macOS 自動啟動；
    執行下載或逐字稿期間，電腦與 App 都必須保持運作。
-4. 第一次產生逐字稿時需要下載 Whisper 模型，因此會比之後的使用久。
+4. 第一次產生逐字稿時需要下載約 1.6 GB 的 Whisper `turbo` 模型；第一次使用
+   英文雙語模式另需下載約 308 MB 的英中翻譯模型，因此會比之後的使用久。
 
 YouTube 可能依影片、帳號或網路環境限制擷取。請只處理自己擁有、已獲授權
 或平台允許下載的內容。
@@ -216,3 +221,18 @@ YouTube 可能依影片、帳號或網路環境限制擷取。請只處理自己
   Inno Setup 安裝、手動啟動、舊版登入自啟清理與解除安裝生命週期。
 - Windows 安裝檔大小為 290,790,989 bytes，SHA-256 為
   `c6d06beaea88a4f7500b138089c3d0790881c896989ef6b1f62d0e48e71210c0`。
+
+## 2026-09-05 多語逐字稿升級
+
+- Whisper 從 `small` 升級為 `turbo`，繁中與英文都依 Whisper 原生時間段落
+  輸出時間碼；繁中模式會套用台灣繁體用字轉換。
+- 英文模式以固定版本、逐檔 SHA-256 驗證的離線 OPUS-MT 模型翻譯，每段固定
+  先顯示英文原文，再顯示繁中翻譯。
+- 合成英文與台灣華語音訊均通過完整 SSE 工作、檔名、下載資料夾及 TXT 內容
+  驗證；英文模式也在最終 macOS App 內實際載入權重並完成推論。
+- `54 passed`，Python 編譯、JavaScript 語法、PyInstaller AI 元件自我檢查、
+  App 深層簽章驗證與 ZIP 完整性檢查均通過。
+- macOS ZIP 大小為 394,897,651 bytes，SHA-256 為
+  `e62795f08ef4bf19aa394beb12fa220f8dd9f3af10a0afe587024a758778cdfd`。
+- 測試期間 YouTube 對公開短片回傳反機器人阻擋，因此本次沒有把線上影片的
+  完整下載／逐字稿列為通過；仍須以使用者網路環境的公開影片再次驗收。

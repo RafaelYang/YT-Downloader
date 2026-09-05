@@ -1,5 +1,5 @@
 #define MyAppName "YT Downloader by 學人新創"
-#define MyAppVersion "0.1.2-dev"
+#define MyAppVersion "0.1.3-dev"
 #define MyAppPublisher "學人新創"
 #define MyAppExeName "YT Downloader by 學人新創.exe"
 
@@ -16,7 +16,7 @@ ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 MinVersion=10.0
 OutputDir=..\dist\installer
-OutputBaseFilename=YT-Downloader-0.1.2-dev-Windows-x64-Setup
+OutputBaseFilename=YT-Downloader-0.1.3-dev-Windows-x64-Setup
 SetupIconFile=..\build\windows\app-icon.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma2/max
@@ -24,7 +24,7 @@ SolidCompression=yes
 WizardStyle=modern
 CloseApplications=yes
 RestartApplications=no
-VersionInfoVersion=0.1.2.0
+VersionInfoVersion=0.1.3.0
 VersionInfoCompany={#MyAppPublisher}
 VersionInfoDescription={#MyAppName} Windows x64 installer
 VersionInfoProductName={#MyAppName}

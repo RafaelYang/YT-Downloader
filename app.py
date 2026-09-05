@@ -33,14 +33,20 @@ import yt_dlp
 
 from desktop_config import APP_VERSION, PRODUCT_NAME, ensure_desktop_directories, resource_dir
 from desktop_platform import open_folder
+from translation_model_manager import ensure_translation_model
 from whisper_model_manager import ensure_whisper_model
 
 # ── 全域變數 ──
 app = FastAPI(title=PRODUCT_NAME, version=APP_VERSION)
 resolved_jobs: dict = {}   # 快取已解析的影片資訊 { job_id: {...} }
 whisper_model = None
+translation_model = None
+translation_tokenizer = None
+traditional_chinese_converter = None
 output_directory_lock = threading.Lock()
 whisper_model_lock = threading.Lock()
+translation_model_lock = threading.Lock()
+traditional_chinese_lock = threading.Lock()
 
 BASE_DIR = Path(__file__).resolve().parent
 RESOURCE_DIR = resource_dir()
@@ -142,6 +148,8 @@ ALLOWED_YOUTUBE_HOSTS = {
     'www.youtu.be',
 }
 OUTPUT_KINDS = {'mp4', 'mp3', 'transcript'}
+TRANSCRIPT_LANGUAGES = {'zh-TW', 'en'}
+WHISPER_MODEL_NAME = 'turbo'
 
 
 def find_media_tool(name: str) -> str:
@@ -197,7 +205,12 @@ def safe_filename(s: str, maxlen: int = 60) -> str:
     return s[:maxlen]
 
 
-def output_stem(title: str, kind: str, quality: int | None = None) -> str:
+def output_stem(
+    title: str,
+    kind: str,
+    quality: int | None = None,
+    transcript_language: str | None = None,
+) -> str:
     """Build a user-facing filename stem as title_kind[_quality]."""
     labels = {
         'mp4': '影片',
@@ -208,6 +221,10 @@ def output_stem(title: str, kind: str, quality: int | None = None) -> str:
     parts = [clean_title, labels[kind]]
     if kind == 'mp4' and quality is not None:
         parts.append(f'{quality}p')
+    if kind == 'transcript' and transcript_language == 'zh-TW':
+        parts.append('繁中')
+    elif kind == 'transcript' and transcript_language == 'en':
+        parts.append('英文雙語')
     return '_'.join(parts)
 
 
@@ -574,14 +591,143 @@ def get_whisper_model():
             device = "mps"
         else:
             device = "cpu"
-        print(f"🧠 載入 Whisper 模型 (small)，裝置：{device}")
+        print(f"🧠 載入 Whisper 模型 ({WHISPER_MODEL_NAME})，裝置：{device}")
 
         if IS_DESKTOP and MODEL_DIR:
-            model_url = whisper._MODELS['small']
-            ensure_whisper_model('small', model_url, MODEL_DIR)
+            model_url = whisper._MODELS[WHISPER_MODEL_NAME]
+            ensure_whisper_model(WHISPER_MODEL_NAME, model_url, MODEL_DIR)
         kwargs = {'download_root': str(MODEL_DIR)} if MODEL_DIR else {}
-        whisper_model = whisper.load_model("small", device=device, **kwargs)
+        whisper_model = whisper.load_model(WHISPER_MODEL_NAME, device=device, **kwargs)
     return whisper_model
+
+
+def get_translation_model():
+    """Lazily load the pinned offline English-to-Chinese translation model."""
+    global translation_model, translation_tokenizer
+    if translation_model is not None and translation_tokenizer is not None:
+        return translation_tokenizer, translation_model
+
+    with translation_model_lock:
+        if translation_model is not None and translation_tokenizer is not None:
+            return translation_tokenizer, translation_model
+
+        from transformers import MarianMTModel, MarianTokenizer
+
+        if MODEL_DIR is None:
+            raise RuntimeError('英中雙語逐字稿目前只支援桌面版')
+        model_path = ensure_translation_model(MODEL_DIR)
+        print(f"🌐 載入英中翻譯模型：{model_path.name}")
+        translation_tokenizer = MarianTokenizer.from_pretrained(
+            model_path,
+            local_files_only=True,
+        )
+        translation_model = MarianMTModel.from_pretrained(
+            model_path,
+            local_files_only=True,
+        )
+        translation_model.eval()
+    return translation_tokenizer, translation_model
+
+
+def to_traditional_chinese(text: str) -> str:
+    """Convert Simplified or mixed Chinese text into Taiwan Traditional Chinese."""
+    global traditional_chinese_converter
+    with traditional_chinese_lock:
+        if traditional_chinese_converter is None:
+            from opencc import OpenCC
+
+            traditional_chinese_converter = OpenCC('s2twp')
+        converted = traditional_chinese_converter.convert(text)
+        # OpenCC preserves the literary variant 「瞭」 in some perfect-aspect
+        # phrases (for example 「解釋瞭」), which is unnatural in modern Taiwan
+        # transcript prose. 「了」 is the appropriate neutral form here.
+        return converted.replace('瞭', '了')
+
+
+def translate_english_segments(texts: list[str]) -> list[str]:
+    """Translate English segments locally, preserving one output per input."""
+    if not texts:
+        return []
+
+    import torch
+
+    tokenizer, model = get_translation_model()
+    translations = []
+    with torch.inference_mode():
+        for start in range(0, len(texts), 8):
+            batch_texts = texts[start:start + 8]
+            tokens = tokenizer(
+                batch_texts,
+                return_tensors='pt',
+                padding=True,
+                truncation=True,
+                max_length=512,
+            )
+            generated = model.generate(
+                **tokens,
+                max_new_tokens=256,
+                num_beams=4,
+            )
+            simplified = tokenizer.batch_decode(generated, skip_special_tokens=True)
+            translations.extend(to_traditional_chinese(text) for text in simplified)
+    return translations
+
+
+def normalize_transcript_segments(result: dict) -> list[dict]:
+    """Return clean Whisper segments with stable timestamps."""
+    segments = []
+    for item in result.get('segments') or []:
+        text = re.sub(r'\s+', ' ', str(item.get('text') or '')).strip()
+        if not text:
+            continue
+        start = max(0.0, float(item.get('start') or 0.0))
+        end = max(start, float(item.get('end') or start))
+        segments.append({'start': start, 'end': end, 'text': text})
+
+    fallback = re.sub(r'\s+', ' ', str(result.get('text') or '')).strip()
+    if not segments and fallback:
+        segments.append({'start': 0.0, 'end': 0.0, 'text': fallback})
+    return segments
+
+
+def transcript_timestamp(seconds: float) -> str:
+    """Format a Whisper timestamp as MM:SS or HH:MM:SS."""
+    total = max(0, int(round(seconds)))
+    hours, remainder = divmod(total, 3600)
+    minutes, secs = divmod(remainder, 60)
+    if hours:
+        return f'{hours:02d}:{minutes:02d}:{secs:02d}'
+    return f'{minutes:02d}:{secs:02d}'
+
+
+def render_transcript(
+    title: str,
+    language: str,
+    segments: list[dict],
+    translations: list[str] | None = None,
+) -> str:
+    """Render timestamped Traditional-Chinese or bilingual transcript text."""
+    if language not in TRANSCRIPT_LANGUAGES:
+        raise ValueError('不支援的逐字稿語言')
+    translations = translations or []
+    if language == 'en' and len(translations) != len(segments):
+        raise ValueError('英中翻譯段落數量不一致')
+
+    mode_label = '繁體中文分段' if language == 'zh-TW' else 'English＋繁體中文分段'
+    lines = [f'📌 {title}', f'語言：{mode_label}', f'模型：Whisper {WHISPER_MODEL_NAME}', '=' * 50, '']
+    for index, segment in enumerate(segments):
+        timestamp = (
+            f"[{transcript_timestamp(segment['start'])} → "
+            f"{transcript_timestamp(segment['end'])}]"
+        )
+        lines.append(timestamp)
+        if language == 'zh-TW':
+            lines.append(to_traditional_chinese(segment['text']))
+        else:
+            lines.append(f"英文：{segment['text']}")
+            lines.append(f"中文：{translations[index]}")
+        lines.append('')
+    return '\n'.join(lines).rstrip() + '\n'
 
 
 def get_yt_dlp_base_opts() -> dict:
@@ -1033,10 +1179,12 @@ async def process_mp3(job_id: str):
 # API: 產生逐字稿（SSE 進度串流）
 # ══════════════════════════════════════════
 @app.get('/api/process-transcript/{job_id}')
-async def process_transcript(job_id: str):
+async def process_transcript(job_id: str, language: str = 'zh-TW'):
     """下載音訊 → Whisper 辨識 → 產生逐字稿，透過 SSE 回報進度"""
     if job_id not in resolved_jobs:
         raise HTTPException(404, '工作不存在或已過期')
+    if language not in TRANSCRIPT_LANGUAGES:
+        raise HTTPException(400, '逐字稿語言只支援繁體中文或英文雙語')
 
     job = resolved_jobs[job_id]
 
@@ -1048,7 +1196,11 @@ async def process_transcript(job_id: str):
             yield sse_event({'step': 'download', 'progress': 5, 'message': '🎵 下載音訊中...'})
 
             title = job['title']
-            transcript_stem = output_stem(title, 'transcript')
+            transcript_stem = output_stem(
+                title,
+                'transcript',
+                transcript_language=language,
+            )
 
             download_opts = {
                 'outtmpl': str(task_dir / f"{title}.%(ext)s"),
@@ -1093,25 +1245,63 @@ async def process_transcript(job_id: str):
             yield sse_event({
                 'step': 'transcribe',
                 'progress': 35,
-                'message': '🧠 AI 語音辨識中（這可能需要幾分鐘）...',
+                'message': '🧠 高品質 AI 語音辨識中（首次會先下載模型）...',
             })
 
             def do_transcribe():
                 model = get_whisper_model()
-                result = model.transcribe(str(wav_path), fp16=False)
-                return result['text']
+                return model.transcribe(
+                    str(wav_path),
+                    language='zh' if language == 'zh-TW' else 'en',
+                    task='transcribe',
+                    fp16=False,
+                    verbose=False,
+                )
 
-            text = await loop.run_in_executor(None, do_transcribe)
+            transcribe_future = loop.run_in_executor(None, do_transcribe)
+            while not transcribe_future.done():
+                yield sse_event({
+                    'step': 'transcribe',
+                    'progress': 50,
+                    'message': '🧠 高品質 AI 語音辨識中（這可能需要幾分鐘）...',
+                })
+                await asyncio.sleep(1.2)
+            result = await transcribe_future
+            segments = normalize_transcript_segments(result)
+            if not segments:
+                raise RuntimeError('沒有辨識到可輸出的語音內容')
 
-            # 在句號、問號、驚嘆號後換行，讓逐字稿更好讀
-            text_formatted = re.sub(r'([.?!。？！])(\s*)', r'\1\n', text)
+            translations = None
+            if language == 'en':
+                yield sse_event({
+                    'step': 'translate',
+                    'progress': 75,
+                    'message': '🌐 逐段翻譯成繁體中文（首次會先下載模型）...',
+                })
+
+                translate_future = loop.run_in_executor(
+                    None,
+                    translate_english_segments,
+                    [segment['text'] for segment in segments],
+                )
+                while not translate_future.done():
+                    yield sse_event({
+                        'step': 'translate',
+                        'progress': 85,
+                        'message': '🌐 正在產生英中雙語段落...',
+                    })
+                    await asyncio.sleep(1.2)
+                translations = await translate_future
 
             txt_path = task_dir / f"{transcript_stem}.txt"
             raw_title = job.get('raw_title', title)
-            txt_path.write_text(
-                f"📌 {raw_title}\n{'=' * 50}\n\n{text_formatted}",
-                encoding='utf-8',
+            transcript_text = render_transcript(
+                raw_title,
+                language,
+                segments,
+                translations,
             )
+            txt_path.write_text(transcript_text, encoding='utf-8')
 
             # 清理暫存 WAV
             if wav_path.exists():
@@ -1128,7 +1318,12 @@ async def process_transcript(job_id: str):
                 'filename': txt_path.name,
                 'filesize': file_size,
                 'saved_to': saved_to,
-                'preview': text[:300] + ('...' if len(text) > 300 else ''),
+                'preview': (
+                    transcript_text[:900]
+                    + ('...' if len(transcript_text) > 900 else '')
+                ),
+                'language': language,
+                'segments': len(segments),
             })
 
         except Exception as e:

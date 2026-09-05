@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from PyInstaller.utils.hooks import collect_data_files
+from PyInstaller.utils.hooks import collect_data_files, collect_submodules
 
 
 PROJECT_ROOT = Path(SPECPATH).resolve().parent
@@ -18,6 +18,7 @@ datas = [
     (str(WINDOWS_VENDOR / "ffmpeg-LICENSE.txt"), "licenses"),
 ]
 datas += collect_data_files("whisper")
+datas += collect_data_files("opencc")
 
 binaries = [
     (str(WINDOWS_VENDOR / "ffmpeg.exe"), "tools"),
@@ -31,6 +32,13 @@ hiddenimports = [
     "uvicorn.loops.auto",
     "uvicorn.protocols.http.auto",
     "uvicorn.protocols.websockets.auto",
+    "sentencepiece",
+    "sacremoses",
+]
+hiddenimports += [
+    module
+    for module in collect_submodules("transformers.models.marian")
+    if ".modeling_flax_" not in module and ".modeling_tf_" not in module
 ]
 
 a = Analysis(
@@ -42,6 +50,7 @@ a = Analysis(
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
+    module_collection_mode={"torch._numpy": "py"},
     excludes=["_pytest", "httpx", "IPython", "matplotlib", "pytest", "tensorboard"],
     noarchive=False,
     optimize=0,

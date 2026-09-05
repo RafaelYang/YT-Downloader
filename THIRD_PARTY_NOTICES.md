@@ -43,6 +43,23 @@ the applicable license texts and satisfy source-availability requirements.
 - Project: <https://github.com/openai/whisper>
 - License: MIT
 
+## Helsinki-NLP OPUS-MT English-Chinese model
+
+- Model: `Helsinki-NLP/opus-mt-en-zh`
+- Pinned revision: `408d9bc410a388e1d9aef112a2daba955b945255`
+- Project: <https://huggingface.co/Helsinki-NLP/opus-mt-en-zh>
+- License: Apache-2.0
+- The application downloads and SHA-256 verifies the model on first use; the
+  model is not embedded in the installer.
+
+## Hugging Face Transformers, SentencePiece, Sacremoses, and OpenCC
+
+- Transformers: <https://github.com/huggingface/transformers> (Apache-2.0)
+- SentencePiece: <https://github.com/google/sentencepiece> (Apache-2.0)
+- Sacremoses: <https://github.com/alvations/sacremoses> (MIT)
+- OpenCC Python reimplementation:
+  <https://github.com/yichen0831/opencc-python> (Apache-2.0)
+
 ## Inno Setup
 
 - Project: <https://jrsoftware.org/isinfo.php>

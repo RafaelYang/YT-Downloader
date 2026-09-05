@@ -367,18 +367,62 @@ def remove_legacy_autostart_cli() -> int:
     return 0
 
 
+def check_ai_runtime_cli() -> int:
+    """Verify packaged transcription, translation, and Traditional-Chinese imports."""
+    import sentencepiece  # noqa: F401
+    from opencc import OpenCC
+    from transformers import MarianMTModel, MarianTokenizer  # noqa: F401
+
+    if OpenCC('s2twp').convert('软件') != '軟體':
+        print('繁體中文字典自我檢查失敗。', file=sys.stderr)
+        return 1
+    print('AI 逐字稿執行元件完整。')
+    return 0
+
+
+def check_translation_model_cli() -> int:
+    """Load the cached translation weights and run one packaged inference."""
+    import torch
+    from opencc import OpenCC
+    from transformers import MarianMTModel, MarianTokenizer
+
+    from translation_model_manager import ensure_translation_model
+    from desktop_config import model_dir
+
+    path = ensure_translation_model(model_dir())
+    tokenizer = MarianTokenizer.from_pretrained(path, local_files_only=True)
+    model = MarianMTModel.from_pretrained(path, local_files_only=True)
+    model.eval()
+    tokens = tokenizer(['Hello.'], return_tensors='pt', padding=True)
+    with torch.inference_mode():
+        generated = model.generate(**tokens, max_new_tokens=32, num_beams=2)
+    translated = tokenizer.batch_decode(generated, skip_special_tokens=True)[0]
+    translated = OpenCC('s2twp').convert(translated).strip()
+    if not translated:
+        print('英中翻譯模型自我檢查未產生文字。', file=sys.stderr)
+        return 1
+    print(f'英中翻譯模型可正常推論：{translated}')
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=PRODUCT_NAME)
     parser.add_argument("--background", action="store_true", help="啟動後不要自動開啟瀏覽器")
     parser.add_argument("--no-tray", action="store_true", help="停用選單列圖示（測試用）")
     parser.add_argument("--remove-autostart", action="store_true", help="清除舊版登入自動啟動設定")
     parser.add_argument("--status", action="store_true", help="顯示背景服務狀態")
+    parser.add_argument("--ai-runtime-check", action="store_true", help=argparse.SUPPRESS)
+    parser.add_argument("--translation-model-check", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--port", type=int, default=DEFAULT_PORT, help=argparse.SUPPRESS)
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.ai_runtime_check:
+        return check_ai_runtime_cli()
+    if args.translation_model_check:
+        return check_translation_model_cli()
     if args.remove_autostart:
         return remove_legacy_autostart_cli()
     if args.status:

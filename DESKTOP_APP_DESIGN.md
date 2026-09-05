@@ -2,7 +2,7 @@
 
 Windows 與 macOS 桌面版產品與技術設計 v1
 
-狀態：Apple Silicon 與 Windows x64 `0.1.2-dev` 開發預覽進入建置驗證。Mac 版已在 Apple M2 Pro 驗證手動啟動與舊版 LaunchAgent 清理；Windows 版已在 GitHub Windows Runner 通過封裝版啟動、舊版登入自啟清理及安裝／啟動／解除安裝測試，但尚待乾淨 Windows 10／11 實機功能驗收。Developer ID 公證、Windows 程式碼簽章與自動更新仍未完成，因此還不是正式公開版。
+狀態：Apple Silicon 與 Windows x64 `0.1.3-dev` 開發預覽進入建置驗證。Mac 版已在 Apple M2 Pro 驗證手動啟動與舊版 LaunchAgent 清理；Windows 版已在 GitHub Windows Runner 通過封裝版啟動、舊版登入自啟清理及安裝／啟動／解除安裝測試，但尚待乾淨 Windows 10／11 實機功能驗收。Developer ID 公證、Windows 程式碼簽章與自動更新仍未完成，因此還不是正式公開版。
 
 截至 2026-09-05 的實作進度：
 
@@ -15,7 +15,8 @@ Windows 與 macOS 桌面版產品與技術設計 v1
 - 已完成預設最高畫質、各畫質預估大小、實際輸出高度核對與本機 MP4 預覽。
 - MP4 儲存前會核對編碼，優先 H.264／AAC；AV1／VP9 會自動轉為
   H.264／AAC MP4，以相容 macOS QuickTime 與 Windows 常見播放器。
-- 已在封裝後 App 端到端驗證 MP4、MP3 與 Whisper `small` MPS 逐字稿。
+- 已完成 Whisper `turbo` 的繁中時間碼分段，以及英文原文在前、繁中翻譯在後的
+  離線雙語分段逐字稿。
 - 已完成 Windows x64 PyInstaller 封裝、系統列、舊版登入自啟清理與繁中
   Inno Setup 安裝程式；Windows Runner 已通過完整安裝生命週期測試。
 - 仍待完成 SQLite queue、工作取消／歷史、24 小時清理、自動更新／回復、
@@ -30,7 +31,7 @@ Windows 與 macOS 桌面版產品與技術設計 v1
 - 解析 YouTube 公開影片資訊。
 - 選擇畫質並下載 MP4；預設最高畫質，顯示預估大小，完成後本機預覽。
 - 下載並轉換 MP3。
-- 使用本機 AI 產生 TXT 逐字稿。
+- 使用本機 AI 產生繁中或 English＋繁中的時間碼分段 TXT 逐字稿。
 - 自動更新程式與 yt-dlp，更新失敗時可回復上一版。
 
 本產品只應用於使用者自有、已獲授權或平台明確允許下載的內容。
@@ -62,7 +63,7 @@ Windows 與 macOS 桌面版產品與技術設計 v1
 
 ### 第一次安裝
 
-1. Windows 使用者執行 `YT-Downloader-0.1.2-dev-Windows-x64-Setup.exe`；Mac 使用者解壓縮 ZIP 並將 App 放入「應用程式」。
+1. Windows 使用者執行 `YT-Downloader-0.1.3-dev-Windows-x64-Setup.exe`；Mac 使用者解壓縮 ZIP 並將 App 放入「應用程式」。
 2. 首次啟動顯示授權資訊，並清除舊預覽版可能留下的登入自動啟動設定。
 3. Windows 安裝至使用者的 Local AppData，不要求系統管理員權限；macOS 使用標準 `.app` bundle。
 4. 首次啟動完成環境檢查，背景下載尚未安裝的語音模型並顯示進度。
