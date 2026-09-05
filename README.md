@@ -18,10 +18,10 @@ English＋繁中，兩者都有時間碼分段；英文模式每段先顯示英�
 一般使用者請從 [YT-Downloader Google 雲端硬碟](https://drive.google.com/drive/folders/1Y4tBWJJzqqnewNeZWbWIeTxHY1m-3Kg4)
 下載最新的雙平台安裝檔：
 
-- macOS Apple Silicon：`YT-Downloader-0.1.3-dev-macOS-arm64.zip`
-- Windows 10／11 x64：`YT-Downloader-0.1.3-dev-Windows-x64-Setup.exe`
+- macOS Apple Silicon：`YT-Downloader-0.1.4-dev-macOS-arm64.zip`
+- Windows 10／11 x64：`YT-Downloader-0.1.4-dev-Windows-x64-Setup.exe`
 
-私人 [GitHub Release v0.1.3-dev](https://github.com/RafaelYang/YT-Downloader/releases/tag/v0.1.3-dev)
+私人 [GitHub Release v0.1.4-dev](https://github.com/RafaelYang/YT-Downloader/releases/tag/v0.1.4-dev)
 保留給受邀的開發與測試成員，GitHub 會在安裝檔右側顯示 SHA-256。
 頁面最下方的 `Source code (zip)` 與 `Source code (tar.gz)` 是 GitHub 自動產生的
 原始碼，不是安裝檔；一般使用者不需要下載。
@@ -46,6 +46,8 @@ English＋繁中，兩者都有時間碼分段；英文模式每段先顯示英�
   轉為 H.264／AAC MP4，避免 QuickTime 只播放聲音。
 - 逐字稿使用 Whisper `turbo`；繁中模式會轉成台灣繁體用字，英文模式另用
   本機英中模型逐段翻譯，不需付費 API。
+- 缺少逐字稿模型時，開始前會先列出所需模型與預估下載容量；使用者選擇
+  「暫不下載」即取消流程，不會建立下載或逐字稿工作。
 - 主程式自動更新、SQLite 背景工作與正式 Developer ID 公證尚未完成。
 - Windows 預覽版尚未簽章，並仍待乾淨 Windows 10／11 實機完成功能驗收。
 
@@ -92,7 +94,7 @@ scripts/build_macos.sh
 輸出位置：
 
 - `dist/YT Downloader by 學人新創.app`
-- `dist/YT-Downloader-0.1.3-dev-macOS-arm64.zip`
+- `dist/YT-Downloader-0.1.4-dev-macOS-arm64.zip`
 
 這個預覽包在目前開發機上採 ad-hoc 簽章。正式給一般使用者下載前，仍須
 使用學人新創的 Apple Developer ID 對 App 與內含執行檔重新簽章、送 Apple
@@ -106,7 +108,7 @@ x64 與 macOS 13 以上 Apple Silicon 版本；Intel Mac 尚無可安裝版本�
 
 Windows：
 
-1. 下載 `YT-Downloader-0.1.3-dev-Windows-x64-Setup.exe` 並執行。
+1. 下載 `YT-Downloader-0.1.4-dev-Windows-x64-Setup.exe` 並執行。
 2. 安裝在目前使用者的 Local AppData，不需要管理員權限；安裝完成後可由桌面
    或開始功能表啟動，程式會常駐系統列。
 3. 預覽版尚未簽章，因此 SmartScreen 可能顯示「未知的發行者」；只應從此私人
@@ -240,3 +242,11 @@ YouTube 可能依影片、帳號或網路環境限制擷取。請只處理自己
   `8d3dfcf47182707829219f2e65fb89a87ba2e656879c4e7e56f299549c2a6cf9`。
 - 測試期間 YouTube 對公開短片回傳反機器人阻擋，因此本次沒有把線上影片的
   完整下載／逐字稿列為通過；仍須以使用者網路環境的公開影片再次驗收。
+
+## 2026-09-05 首次模型下載確認
+
+- 開始逐字稿前會先驗證本機模型；檢查本身不會下載檔案。
+- 只有缺少模型時才顯示自訂確認視窗，逐一列出模型名稱、預估容量及合計容量。
+- 「暫不下載」、點選背景或按 Escape 都會取消，不建立逐字稿 SSE 連線；只有
+  「下載並繼續」會開始原有的音訊下載與模型安裝流程。
+- `59 passed`，且內建瀏覽器驗證取消後的逐字稿呼叫數為 0、同意後才變成 1。

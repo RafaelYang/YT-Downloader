@@ -22,12 +22,20 @@ const videoPreview = document.getElementById('video-preview');
 const transcriptLanguageOptions = Array.from(
     document.querySelectorAll('.transcript-language-option'),
 );
+const modelDownloadDialog = document.getElementById('model-download-dialog');
+const modelDownloadDialogBackdrop = modelDownloadDialog.querySelector('.model-download-dialog-backdrop');
+const modelDownloadDescription = document.getElementById('model-download-dialog-description');
+const modelDownloadList = document.getElementById('model-download-list');
+const modelDownloadCancel = document.getElementById('model-download-cancel');
+const modelDownloadConfirm = document.getElementById('model-download-confirm');
 
 // 目前的 job_id（解析後取得）
 let currentJobId = null;
 let availableQualities = [];
 let selectedQualityHeight = '';
 let selectedTranscriptLanguage = 'zh-TW';
+let transcriptModelCheckInProgress = false;
+let modelDownloadDialogResolver = null;
 const activeTasks = new Set();
 
 // ── 解析影片 ──
@@ -93,8 +101,53 @@ async function resolveVideo() {
 
 
 // ── 開始某項任務（mp4 / mp3 / transcript）──
-function startTask(type) {
+async function startTask(type) {
     if (!currentJobId) return;
+    if (type === 'transcript') {
+        await prepareTranscriptTask();
+        return;
+    }
+    beginTask(type);
+}
+
+
+async function prepareTranscriptTask() {
+    if (!currentJobId || activeTasks.has('transcript') || transcriptModelCheckInProgress) return;
+
+    transcriptModelCheckInProgress = true;
+    setTranscriptPreparationState(true);
+    let started = false;
+
+    try {
+        const response = await fetch(
+            `/api/transcript-model-status?language=${encodeURIComponent(selectedTranscriptLanguage)}`,
+        );
+        const status = await response.json();
+        if (!response.ok) {
+            throw new Error(status.detail || '無法檢查 AI 模型');
+        }
+
+        if (status.download_required) {
+            const confirmed = await confirmModelDownload(status);
+            if (!confirmed) return;
+        }
+
+        beginTask('transcript');
+        started = true;
+    } catch (error) {
+        showError(error.message || '無法檢查 AI 模型');
+        console.error(error);
+    } finally {
+        transcriptModelCheckInProgress = false;
+        if (!started) {
+            setTranscriptPreparationState(false);
+        }
+    }
+}
+
+
+function beginTask(type) {
+    if (!currentJobId || activeTasks.has(type)) return;
 
     const btn = document.getElementById(`btn-${type}`);
     const progressEl = document.getElementById(`progress-${type}`);
@@ -208,6 +261,52 @@ function startTask(type) {
         btn.querySelector('.btn-action-loading').style.display = 'none';
         finishTask(type);
     };
+}
+
+
+function setTranscriptPreparationState(checking) {
+    const btn = document.getElementById('btn-transcript');
+    btn.disabled = checking;
+    btn.querySelector('.btn-action-text').style.display = checking ? 'none' : 'inline';
+    btn.querySelector('.btn-action-loading').style.display = checking ? 'inline-flex' : 'none';
+    transcriptLanguageOptions.forEach((option) => { option.disabled = checking; });
+}
+
+
+function confirmModelDownload(status) {
+    closeQualityDialog(false);
+    modelDownloadDescription.textContent =
+        `第一次使用需要下載 ${status.models.length} 個模型，合計 ${status.total_size_label}。是否現在下載？`;
+    modelDownloadList.replaceChildren();
+
+    status.models.forEach((model) => {
+        const item = document.createElement('div');
+        item.className = 'model-download-item';
+
+        const name = document.createElement('strong');
+        name.textContent = model.name;
+        const size = document.createElement('span');
+        size.textContent = model.size_label;
+        item.append(name, size);
+        modelDownloadList.appendChild(item);
+    });
+
+    modelDownloadDialog.hidden = false;
+    document.body.classList.add('model-download-dialog-open');
+    window.requestAnimationFrame(() => modelDownloadCancel.focus());
+    return new Promise((resolve) => {
+        modelDownloadDialogResolver = resolve;
+    });
+}
+
+
+function closeModelDownloadDialog(confirmed) {
+    if (modelDownloadDialog.hidden) return;
+    modelDownloadDialog.hidden = true;
+    document.body.classList.remove('model-download-dialog-open');
+    const resolve = modelDownloadDialogResolver;
+    modelDownloadDialogResolver = null;
+    resolve?.(confirmed);
 }
 
 // 為了讓 HTML onclick 能呼叫
@@ -398,6 +497,7 @@ function moveQualityFocus(direction) {
 
 function resetAllCards() {
     closeQualityDialog(false);
+    closeModelDownloadDialog(false);
     videoPreview.pause();
     videoPreview.removeAttribute('src');
     videoPreview.load();
@@ -516,6 +616,26 @@ qualityDialog.addEventListener('keydown', (event) => {
         event.preventDefault();
         const options = qualityOptions.querySelectorAll('[role="option"]');
         options[options.length - 1]?.focus();
+    }
+});
+
+modelDownloadCancel.addEventListener('click', () => closeModelDownloadDialog(false));
+modelDownloadConfirm.addEventListener('click', () => closeModelDownloadDialog(true));
+modelDownloadDialogBackdrop.addEventListener('click', () => closeModelDownloadDialog(false));
+
+modelDownloadDialog.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+        event.preventDefault();
+        closeModelDownloadDialog(false);
+        return;
+    }
+    if (event.key === 'Tab') {
+        const focusable = [modelDownloadCancel, modelDownloadConfirm];
+        const currentIndex = focusable.indexOf(document.activeElement);
+        const direction = event.shiftKey ? -1 : 1;
+        const nextIndex = (currentIndex + direction + focusable.length) % focusable.length;
+        event.preventDefault();
+        focusable[nextIndex].focus();
     }
 });
 

@@ -631,7 +631,8 @@ body {
     transform: rotate(180deg);
 }
 
-body.quality-dialog-open {
+body.quality-dialog-open,
+body.model-download-dialog-open {
     overflow: hidden;
 }
 
@@ -724,6 +725,92 @@ body.quality-dialog-open {
     color: var(--text-primary);
     background: rgba(255, 255, 255, 0.12);
     outline: none;
+}
+
+.model-download-dialog-panel {
+    width: min(470px, 100%);
+}
+
+.model-download-description {
+    margin: -2px 0 16px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.65;
+}
+
+.model-download-list {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    margin-bottom: 14px;
+}
+
+.model-download-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 13px 14px;
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 13px;
+    background: rgba(255, 255, 255, 0.045);
+    text-align: left;
+}
+
+.model-download-item strong {
+    font-size: 0.85rem;
+    line-height: 1.45;
+}
+
+.model-download-item span {
+    flex: 0 0 auto;
+    color: var(--accent-light);
+    font-size: 0.78rem;
+    font-weight: 700;
+}
+
+.model-download-note {
+    margin-bottom: 18px;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    line-height: 1.55;
+}
+
+.model-download-actions {
+    display: grid;
+    grid-template-columns: 1fr 1.25fr;
+    gap: 10px;
+}
+
+.model-download-actions button {
+    min-height: 46px;
+    border-radius: 13px;
+    font-family: var(--font);
+    font-size: 0.86rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.model-download-cancel {
+    border: 1px solid var(--glass-border);
+    background: rgba(255, 255, 255, 0.055);
+    color: var(--text-secondary);
+}
+
+.model-download-confirm {
+    border: 0;
+    background: linear-gradient(135deg, var(--accent), #ff7d65);
+    color: white;
+    box-shadow: 0 10px 28px rgba(255, 71, 87, 0.22);
+}
+
+.model-download-actions button:hover,
+.model-download-actions button:focus-visible {
+    transform: translateY(-1px);
+    filter: brightness(1.08);
+    outline: 2px solid rgba(255, 255, 255, 0.24);
+    outline-offset: 2px;
 }
 
 .quality-options {

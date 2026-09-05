@@ -159,6 +159,10 @@ def test_static_ids_match_frontend_lookup():
     assert 'id="transcript-language-zh"' in html
     assert 'id="transcript-language-en"' in html
     assert 'role="radiogroup"' in html
+    assert 'id="model-download-dialog"' in html
+    assert 'id="model-download-cancel"' in html
+    assert 'id="model-download-confirm"' in html
+    assert '暫不下載' in html
     assert 'id="reset-btn"' not in html
     assert "再下載一個" not in html
 
@@ -401,6 +405,69 @@ def test_transcript_endpoint_rejects_unsupported_language(monkeypatch):
     client = TestClient(app_module.app, base_url="http://127.0.0.1")
 
     response = client.get("/api/process-transcript/1234abcd?language=fr")
+
+    assert response.status_code == 400
+    assert response.json()["detail"] == "逐字稿語言只支援繁體中文或英文雙語"
+
+
+def test_transcript_model_status_prompts_only_for_missing_chinese_model(monkeypatch):
+    monkeypatch.setattr(app_module, "is_whisper_model_available", lambda: False)
+    monkeypatch.setattr(
+        app_module,
+        "is_translation_model_available",
+        lambda: (_ for _ in ()).throw(AssertionError("繁中模式不應檢查翻譯模型")),
+    )
+    client = TestClient(app_module.app, base_url="http://127.0.0.1")
+
+    response = client.get("/api/transcript-model-status?language=zh-TW")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "language": "zh-TW",
+        "download_required": True,
+        "models": [
+            {
+                "id": "whisper-turbo",
+                "name": "Whisper turbo 語音辨識模型",
+                "size_bytes": 1_617_941_637,
+                "size_label": "約 1.6 GB",
+            }
+        ],
+        "total_size_bytes": 1_617_941_637,
+        "total_size_label": "約 1.6 GB",
+    }
+
+
+def test_transcript_model_status_lists_only_missing_english_translation(monkeypatch):
+    monkeypatch.setattr(app_module, "is_whisper_model_available", lambda: True)
+    monkeypatch.setattr(app_module, "is_translation_model_available", lambda: False)
+    client = TestClient(app_module.app, base_url="http://127.0.0.1")
+
+    response = client.get("/api/transcript-model-status?language=en")
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["download_required"] is True
+    assert data["total_size_label"] == "約 315 MB"
+    assert [model["id"] for model in data["models"]] == ["translation-en-zh"]
+
+
+def test_transcript_model_status_skips_prompt_when_models_are_installed(monkeypatch):
+    monkeypatch.setattr(app_module, "is_whisper_model_available", lambda: True)
+    monkeypatch.setattr(app_module, "is_translation_model_available", lambda: True)
+    client = TestClient(app_module.app, base_url="http://127.0.0.1")
+
+    response = client.get("/api/transcript-model-status?language=en")
+
+    assert response.status_code == 200
+    assert response.json()["download_required"] is False
+    assert response.json()["models"] == []
+
+
+def test_transcript_model_status_rejects_unsupported_language():
+    client = TestClient(app_module.app, base_url="http://127.0.0.1")
+
+    response = client.get("/api/transcript-model-status?language=fr")
 
     assert response.status_code == 400
     assert response.json()["detail"] == "逐字稿語言只支援繁體中文或英文雙語"

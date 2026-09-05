@@ -75,3 +75,22 @@ def test_ensure_whisper_model_uses_publisher_filename_for_alias(tmp_path):
 
     assert result == destination / "large-v3-turbo.pt"
     assert result.read_bytes() == content
+
+
+def test_find_verified_whisper_model_does_not_download(tmp_path):
+    content = b"verified turbo model"
+    digest = hashlib.sha256(content).hexdigest()
+    url = f"https://models.example.test/{digest}/large-v3-turbo.pt"
+    model_directory = tmp_path / "models"
+    legacy_directory = tmp_path / "legacy"
+    legacy_directory.mkdir()
+    cached = legacy_directory / "large-v3-turbo.pt"
+    cached.write_bytes(content)
+
+    assert manager.find_verified_whisper_model(
+        "turbo",
+        url,
+        model_directory,
+        legacy_directory,
+    ) == cached
+    assert not model_directory.exists()

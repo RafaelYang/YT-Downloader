@@ -203,6 +203,31 @@
         </section>
     </div>
 
+    <div class="model-download-dialog quality-dialog" id="model-download-dialog" hidden>
+        <button class="model-download-dialog-backdrop quality-dialog-backdrop" type="button" aria-label="暫不下載"></button>
+        <section
+            class="model-download-dialog-panel quality-dialog-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="model-download-dialog-title"
+            aria-describedby="model-download-dialog-description"
+        >
+            <header class="quality-dialog-header">
+                <div>
+                    <span class="quality-dialog-eyebrow">AI 逐字稿</span>
+                    <h2 id="model-download-dialog-title">需要先下載 AI 模型</h2>
+                </div>
+            </header>
+            <p class="model-download-description" id="model-download-dialog-description"></p>
+            <div class="model-download-list" id="model-download-list"></div>
+            <p class="model-download-note">模型只會下載一次並保存在這台電腦，之後不會再次詢問。</p>
+            <div class="model-download-actions">
+                <button class="model-download-cancel" id="model-download-cancel" type="button">暫不下載</button>
+                <button class="model-download-confirm" id="model-download-confirm" type="button">下載並繼續</button>
+            </div>
+        </section>
+    </div>
+
     <script src="app.js"></script>
 </body>
 </html>

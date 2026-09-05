@@ -12,6 +12,7 @@ from whisper_model_manager import download_verified_model, is_verified_model
 MODEL_ID = "Helsinki-NLP/opus-mt-en-zh"
 MODEL_REVISION = "408d9bc410a388e1d9aef112a2daba955b945255"
 MODEL_DIRECTORY_NAME = f"opus-mt-en-zh-{MODEL_REVISION[:8]}"
+MODEL_DOWNLOAD_SIZE_BYTES = 315_317_575
 MODEL_FILES = {
     "config.json": "bcae8ed74fed77fb51c58462b62397fee6b1a1a34aece79183a0dd02ad329e71",
     "generation_config.json": "837839ed0534a27084f9b980fc33f47729052dd89cb26cca7ac830765ed30e49",

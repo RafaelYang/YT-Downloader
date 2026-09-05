@@ -33,8 +33,13 @@ import yt_dlp
 
 from desktop_config import APP_VERSION, PRODUCT_NAME, ensure_desktop_directories, resource_dir
 from desktop_platform import open_folder
-from translation_model_manager import ensure_translation_model
-from whisper_model_manager import ensure_whisper_model
+from translation_model_manager import (
+    MODEL_DIRECTORY_NAME as TRANSLATION_MODEL_DIRECTORY_NAME,
+    MODEL_DOWNLOAD_SIZE_BYTES as TRANSLATION_MODEL_DOWNLOAD_SIZE_BYTES,
+    ensure_translation_model,
+    is_verified_translation_model,
+)
+from whisper_model_manager import ensure_whisper_model, find_verified_whisper_model
 
 # ── 全域變數 ──
 app = FastAPI(title=PRODUCT_NAME, version=APP_VERSION)
@@ -150,6 +155,7 @@ ALLOWED_YOUTUBE_HOSTS = {
 OUTPUT_KINDS = {'mp4', 'mp3', 'transcript'}
 TRANSCRIPT_LANGUAGES = {'zh-TW', 'en'}
 WHISPER_MODEL_NAME = 'turbo'
+WHISPER_MODEL_DOWNLOAD_SIZE_BYTES = 1_617_941_637
 
 
 def find_media_tool(name: str) -> str:
@@ -627,6 +633,70 @@ def get_translation_model():
         )
         translation_model.eval()
     return translation_tokenizer, translation_model
+
+
+def is_whisper_model_available() -> bool:
+    """Check verified Whisper caches without downloading model bytes."""
+    if whisper_model is not None:
+        return True
+    if MODEL_DIR is None:
+        return False
+
+    import whisper
+
+    model_url = whisper._MODELS[WHISPER_MODEL_NAME]
+    return find_verified_whisper_model(
+        WHISPER_MODEL_NAME,
+        model_url,
+        MODEL_DIR,
+    ) is not None
+
+
+def is_translation_model_available() -> bool:
+    """Check the pinned translation model without downloading model bytes."""
+    if translation_model is not None and translation_tokenizer is not None:
+        return True
+    if MODEL_DIR is None:
+        return False
+    return is_verified_translation_model(MODEL_DIR / TRANSLATION_MODEL_DIRECTORY_NAME)
+
+
+def approximate_download_size(size: int) -> str:
+    """Return a friendly decimal download-size label for confirmation UI."""
+    if size >= 1_000_000_000:
+        return f'約 {size / 1_000_000_000:.1f} GB'
+    return f'約 {round(size / 1_000_000):d} MB'
+
+
+def transcript_model_download_status(language: str) -> dict:
+    """Describe model downloads needed before starting a transcript job."""
+    if language not in TRANSCRIPT_LANGUAGES:
+        raise ValueError('逐字稿語言只支援繁體中文或英文雙語')
+
+    models = []
+    if not is_whisper_model_available():
+        models.append({
+            'id': 'whisper-turbo',
+            'name': 'Whisper turbo 語音辨識模型',
+            'size_bytes': WHISPER_MODEL_DOWNLOAD_SIZE_BYTES,
+            'size_label': approximate_download_size(WHISPER_MODEL_DOWNLOAD_SIZE_BYTES),
+        })
+    if language == 'en' and not is_translation_model_available():
+        models.append({
+            'id': 'translation-en-zh',
+            'name': '英文轉繁中翻譯模型',
+            'size_bytes': TRANSLATION_MODEL_DOWNLOAD_SIZE_BYTES,
+            'size_label': approximate_download_size(TRANSLATION_MODEL_DOWNLOAD_SIZE_BYTES),
+        })
+
+    total_size = sum(model['size_bytes'] for model in models)
+    return {
+        'language': language,
+        'download_required': bool(models),
+        'models': models,
+        'total_size_bytes': total_size,
+        'total_size_label': approximate_download_size(total_size) if total_size else '0 MB',
+    }
 
 
 def to_traditional_chinese(text: str) -> str:
@@ -1173,6 +1243,18 @@ async def process_mp3(job_id: str):
         media_type='text/event-stream',
         headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'},
     )
+
+
+# ══════════════════════════════════════════
+# API: 檢查逐字稿模型（不下載）
+# ══════════════════════════════════════════
+@app.get('/api/transcript-model-status')
+def get_transcript_model_status(language: str = 'zh-TW'):
+    """Tell the UI whether explicit consent is needed before model download."""
+    try:
+        return transcript_model_download_status(language)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc)) from exc
 
 
 # ══════════════════════════════════════════

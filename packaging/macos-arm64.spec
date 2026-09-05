@@ -112,8 +112,8 @@ app = BUNDLE(
     info_plist={
         "CFBundleDisplayName": APP_NAME,
         "CFBundleName": APP_NAME,
-        "CFBundleShortVersionString": "0.1.3",
-        "CFBundleVersion": "3",
+        "CFBundleShortVersionString": "0.1.4",
+        "CFBundleVersion": "4",
         "LSMinimumSystemVersion": "13.0",
         "LSUIElement": True,
         "NSHighResolutionCapable": True,

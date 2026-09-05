@@ -5,7 +5,7 @@
 Windows 使用者不需要安裝 Python、FFmpeg、Node.js 或 Tailscale。
 
 1. 從私人 GitHub 專案的 Releases 下載
-   `YT-Downloader-0.1.3-dev-Windows-x64-Setup.exe`。
+   `YT-Downloader-0.1.4-dev-Windows-x64-Setup.exe`。
 2. 執行安裝程式。安裝位置預設為目前使用者的 Local AppData，因此不需要
    系統管理員權限。
 3. 安裝完成後啟動 App。操作頁面會在預設瀏覽器開啟，背景程式則常駐於
@@ -68,7 +68,7 @@ SHA-256，避免依賴建置機是否預先安裝額外語言包。
 安裝程式輸出：
 
 ```text
-dist\installer\YT-Downloader-0.1.3-dev-Windows-x64-Setup.exe
+dist\installer\YT-Downloader-0.1.4-dev-Windows-x64-Setup.exe
 ```
 
 GitHub Actions 的 `Build Windows preview` 工作會在 `windows-2022` x64 環境

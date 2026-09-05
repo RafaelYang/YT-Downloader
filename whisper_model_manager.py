@@ -117,22 +117,16 @@ def ensure_whisper_model(
     if not model_filename:
         raise ValueError("Whisper 模型網址缺少檔名")
     destination = model_directory / model_filename
-    if is_verified_model(destination, expected_sha256):
+    verified = find_verified_whisper_model(
+        model_name,
+        model_url,
+        model_directory,
+        legacy_cache_directory,
+    )
+    if verified == destination:
         return destination
 
-    legacy_cache_directory = (
-        Path.home() / ".cache" / "whisper"
-        if legacy_cache_directory is None
-        else legacy_cache_directory
-    )
-    legacy_candidates = [
-        legacy_cache_directory / model_filename,
-        legacy_cache_directory / f"{model_name}.pt",
-    ]
-    legacy = next(
-        (path for path in legacy_candidates if is_verified_model(path, expected_sha256)),
-        None,
-    )
+    legacy = verified
     if legacy is not None:
         model_directory.mkdir(parents=True, exist_ok=True)
         temporary = destination.with_name(
@@ -151,4 +145,33 @@ def ensure_whisper_model(
         model_url,
         destination,
         expected_sha256,
+    )
+
+
+def find_verified_whisper_model(
+    model_name: str,
+    model_url: str,
+    model_directory: Path,
+    legacy_cache_directory: Path | None = None,
+) -> Path | None:
+    """Find a verified current or legacy cache without downloading anything."""
+    expected_sha256 = expected_hash_from_url(model_url)
+    model_filename = Path(urlparse(model_url).path).name
+    if not model_filename:
+        raise ValueError("Whisper 模型網址缺少檔名")
+
+    destination = model_directory / model_filename
+    legacy_cache_directory = (
+        Path.home() / ".cache" / "whisper"
+        if legacy_cache_directory is None
+        else legacy_cache_directory
+    )
+    candidates = [
+        destination,
+        legacy_cache_directory / model_filename,
+        legacy_cache_directory / f"{model_name}.pt",
+    ]
+    return next(
+        (path for path in candidates if is_verified_model(path, expected_sha256)),
+        None,
     )
