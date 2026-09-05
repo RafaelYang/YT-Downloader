@@ -6,7 +6,7 @@ on:
       release_tag:
         description: Existing prerelease tag to receive the installer
         required: true
-        default: v0.1.0-dev
+        default: v0.1.1-dev
         type: string
       publish_release:
         description: Attach the verified installer to the private GitHub Release
@@ -79,7 +79,7 @@ jobs:
             }
           }
 
-          $Process = Start-Process -FilePath $Executable -ArgumentList @("--background", "--no-tray", "--no-autostart") -PassThru
+          $Process = Start-Process -FilePath $Executable -ArgumentList @("--background", "--no-tray") -PassThru
           $Healthy = $false
           try {
             for ($Attempt = 0; $Attempt -lt 120; $Attempt++) {
@@ -124,7 +124,7 @@ jobs:
             throw "Inno Setup failed."
           }
 
-          $Installer = (Resolve-Path "dist\installer\YT-Downloader-by-Xueren-0.1.0-dev-Windows-x64-Setup.exe").Path
+          $Installer = (Resolve-Path "dist\installer\YT-Downloader-0.1.1-dev-Windows-x64-Setup.exe").Path
           $Hash = (Get-FileHash -Path $Installer -Algorithm SHA256).Hash.ToLowerInvariant()
           $Checksum = Join-Path (Split-Path -Parent $Installer) "SHA256SUMS-windows.txt"
           [System.IO.File]::WriteAllText(
@@ -138,7 +138,7 @@ jobs:
       - name: Smoke-test installer lifecycle
         shell: pwsh
         run: |
-          $Installer = (Resolve-Path "dist\installer\YT-Downloader-by-Xueren-0.1.0-dev-Windows-x64-Setup.exe").Path
+          $Installer = (Resolve-Path "dist\installer\YT-Downloader-0.1.1-dev-Windows-x64-Setup.exe").Path
           $InstallDir = Join-Path $env:RUNNER_TEMP "yt-downloader-installed"
           $Executable = Join-Path $InstallDir "YT Downloader by 學人新創.exe"
           $env:YT_DATA_DIR = Join-Path $env:RUNNER_TEMP "yt-downloader-installer-smoke-data"
@@ -159,6 +159,22 @@ jobs:
             }
           }
 
+          function Set-LegacyLoginStartupValue {
+            $Key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey(
+              "Software\Microsoft\Windows\CurrentVersion\Run"
+            )
+            try {
+              $Key.SetValue(
+                "YT Downloader by 學人新創",
+                "`"$Executable`" --background",
+                [Microsoft.Win32.RegistryValueKind]::String
+              )
+            }
+            finally {
+              $Key.Dispose()
+            }
+          }
+
           $Install = Start-Process -FilePath $Installer -ArgumentList @(
             "/VERYSILENT",
             "/SUPPRESSMSGBOXES",
@@ -168,6 +184,11 @@ jobs:
           ) -Wait -PassThru
           if ($Install.ExitCode -ne 0 -or -not (Test-Path $Executable)) {
             throw "Silent current-user installation failed with exit code $($Install.ExitCode)."
+          }
+
+          Set-LegacyLoginStartupValue
+          if ($null -eq (Get-LoginStartupValue)) {
+            throw "The legacy current-user login startup fixture was not created."
           }
 
           $Process = Start-Process -FilePath $Executable -ArgumentList @("--background", "--no-tray") -PassThru
@@ -193,27 +214,11 @@ jobs:
             }
             Write-Host "Installed Windows application is healthy."
 
-            $RunValue = $null
-            for ($Attempt = 0; $Attempt -lt 20 -and $null -eq $RunValue; $Attempt++) {
-              $RunValue = Get-LoginStartupValue
-              if ($null -eq $RunValue) {
-                Start-Sleep -Milliseconds 250
-              }
-            }
-            if ($RunValue -notmatch [regex]::Escape($Executable) -or $RunValue -notmatch "--background") {
-              throw "First packaged launch did not create the expected current-user login startup command: $RunValue"
-            }
-            Write-Host "First launch registered current-user login startup."
-
-            $RemoveAutostart = Start-Process -FilePath $Executable -ArgumentList "--remove-autostart" -Wait -PassThru
-            if ($RemoveAutostart.ExitCode -ne 0) {
-              throw "The installed application could not remove login startup."
-            }
             $RemainingRunValue = Get-LoginStartupValue
             if ($null -ne $RemainingRunValue) {
-              throw "Login startup remained after the application removed it."
+              throw "Legacy login startup remained after the packaged application launched: $RemainingRunValue"
             }
-            Write-Host "Current-user login startup removal passed."
+            Write-Host "Packaged launch removed legacy login startup and did not recreate it."
           }
           finally {
             if (-not $Process.HasExited) {
@@ -244,9 +249,9 @@ jobs:
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v7
         with:
-          name: YT-Downloader-by-Xueren-0.1.0-dev-Windows-x64
+          name: YT-Downloader-0.1.1-dev-Windows-x64
           path: |
-            dist/installer/YT-Downloader-by-Xueren-0.1.0-dev-Windows-x64-Setup.exe
+            dist/installer/YT-Downloader-0.1.1-dev-Windows-x64-Setup.exe
             dist/installer/SHA256SUMS-windows.txt
           compression-level: 0
           if-no-files-found: error
@@ -260,6 +265,6 @@ jobs:
         run: |
           gh release view $env:RELEASE_TAG
           gh release upload $env:RELEASE_TAG `
-            "dist\installer\YT-Downloader-by-Xueren-0.1.0-dev-Windows-x64-Setup.exe#Windows 10/11 x64 安裝程式" `
+            "dist\installer\YT-Downloader-0.1.1-dev-Windows-x64-Setup.exe#Windows 10/11 x64 安裝程式" `
             "dist\installer\SHA256SUMS-windows.txt#Windows SHA-256 校驗碼" `
             --clobber

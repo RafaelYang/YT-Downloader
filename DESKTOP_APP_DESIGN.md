@@ -2,11 +2,11 @@
 
 Windows 與 macOS 桌面版產品與技術設計 v1
 
-狀態：Apple Silicon 與 Windows x64 `0.1.0-dev` 開發預覽均已建置。Mac 版已在 Apple M2 Pro 驗證；Windows 版已在 GitHub Windows Runner 通過封裝版啟動及安裝／啟動／解除安裝測試，但尚待乾淨 Windows 10／11 實機功能驗收。Developer ID 公證、Windows 程式碼簽章與自動更新仍未完成，因此還不是正式公開版。
+狀態：Apple Silicon 與 Windows x64 `0.1.1-dev` 開發預覽正在建置。Mac 版已在 Apple M2 Pro 驗證；Windows 版已在 GitHub Windows Runner 通過先前版本的封裝版啟動及安裝／啟動／解除安裝測試，但尚待新版與乾淨 Windows 10／11 實機功能驗收。Developer ID 公證、Windows 程式碼簽章與自動更新仍未完成，因此還不是正式公開版。
 
 截至 2026-08-31 的實作進度：
 
-- 已完成 macOS 選單列啟動器、單一執行個體、LaunchAgent 登入自啟偏好、本機資料路徑與 `127.0.0.1` 限制。
+- 已完成 macOS 選單列啟動器、單一執行個體、本機資料路徑與 `127.0.0.1` 限制；程式只在使用者手動開啟後執行。
 - 已完成 localhost 隨機憑證、Host／Origin 檢查、YouTube URL 白名單與已登記成品下載路徑。
 - 已移除 Cookie 上傳介面及 Docker Cookie 打包，並修正逐字稿 DOM id。
 - 已納入固定版本與雜湊的 Apple Silicon FFmpeg／FFprobe 9.0.1。
@@ -14,14 +14,14 @@ Windows 與 macOS 桌面版產品與技術設計 v1
   bgutil-ytdlp-pot-provider 1.3.2 高畫質相容層。
 - 已完成預設最高畫質、各畫質預估大小、實際輸出高度核對與本機 MP4 預覽。
 - 已在封裝後 App 端到端驗證 MP4、MP3 與 Whisper `small` MPS 逐字稿。
-- 已完成 Windows x64 PyInstaller 封裝、系統列、使用者層登入自啟與繁中
+- 已完成 Windows x64 PyInstaller 封裝、系統列、舊版登入自啟清理與繁中
   Inno Setup 安裝程式；Windows Runner 已通過完整安裝生命週期測試。
 - 仍待完成 SQLite queue、工作取消／歷史、24 小時清理、自動更新／回復、
   正式簽章／公證，以及乾淨 Windows 10／11 實機功能驗收。
 
 ## 1. 產品定位
 
-「YT Downloader by 學人新創」是一套在使用者自己的 Windows 或 Mac 電腦上執行的本機工具。使用者只需安裝一次；之後登入系統時程式自動在背景啟動，不需要手動開伺服器、安裝 Python、執行批次檔或維護雲端主機。
+「YT Downloader by 學人新創」是一套在使用者自己的 Windows 或 Mac 電腦上執行的本機工具。使用者只需安裝一次；之後直接開啟 App 即可使用，不需要手動開伺服器、安裝 Python、執行批次檔或維護雲端主機，也不會隨登入系統自動啟動。
 
 核心功能：
 
@@ -40,7 +40,7 @@ Windows 與 macOS 桌面版產品與技術設計 v1
 - Windows 10／11 x64。
 - macOS Apple Silicon；第一個 Mac 驗收目標為目前開發機的 Apple M2 Pro。Intel Mac 待獨立建置與實機驗證後再列為正式支援。
 - 單一使用者安裝，不要求系統管理員權限。
-- 登入 Windows 或 macOS 後自動啟動。
+- 只有使用者手動開啟 App 時才啟動。
 - Windows 系統列／macOS 選單列常駐圖示。
 - 本機介面與本機處理。
 - MP4、MP3、逐字稿三種工作。
@@ -60,20 +60,20 @@ Windows 與 macOS 桌面版產品與技術設計 v1
 
 ### 第一次安裝
 
-1. Windows 使用者執行 `YT-Downloader-by-Xueren-0.1.0-dev-Windows-x64-Setup.exe`；Mac 使用者解壓縮 ZIP 並將 App 放入「應用程式」。
-2. 首次啟動顯示授權資訊與「登入後自動啟動」選項；預設勾選。
-3. Windows 安裝至使用者的 Local AppData，不要求系統管理員權限；macOS 使用標準 `.app` bundle 與使用者層 Login Item／LaunchAgent。
+1. Windows 使用者執行 `YT-Downloader-0.1.1-dev-Windows-x64-Setup.exe`；Mac 使用者解壓縮 ZIP 並將 App 放入「應用程式」。
+2. 首次啟動顯示授權資訊，並清除舊預覽版可能留下的登入自動啟動設定。
+3. Windows 安裝至使用者的 Local AppData，不要求系統管理員權限；macOS 使用標準 `.app` bundle。
 4. 首次啟動完成環境檢查，背景下載尚未安裝的語音模型並顯示進度。
 5. 顯示主畫面與簡短的授權內容提醒。
 
 ### 日常使用
 
-1. 使用者登入 Windows 或 macOS，程式在背景啟動。
-2. 點桌面／應用程式捷徑、Windows 系統列或 macOS 選單列的「開啟 YT Downloader」。
+1. 使用者點桌面／應用程式捷徑，手動開啟 YT Downloader。
+2. App 啟動後可從 Windows 系統列或 macOS 選單列再次開啟操作頁面。
 3. 貼上網址，解析後選擇 MP4、MP3 或 AI 逐字稿。
 4. 完成後可直接開啟檔案或所在資料夾。
 
-背景啟動時不應自動彈出瀏覽器或主視窗；只有首次安裝與使用者主動開啟時顯示介面。
+只有使用者主動開啟 App 時顯示介面；執行後可在系統列／選單列常駐，直到使用者選擇結束。
 macOS App 已在背景執行時，再次從 Finder 或 Dock 開啟必須處理系統的 reopen
 事件並顯示操作頁面，不得因單一執行個體而靜默無反應。
 
@@ -98,7 +98,7 @@ macOS App 已在背景執行時，再次從 Finder 或 Dock 開啟必須處理�
 ## 5. 架構
 
 ```text
-Windows／macOS 登入
+使用者手動開啟 App
    |
    v
 Desktop Launcher / Tray  ----->  Updater Helper
@@ -121,7 +121,7 @@ Local FastAPI (127.0.0.1 only) <---- Versioned app folders
 
 #### Desktop Launcher / Tray
 
-- Windows 使用 named mutex，macOS 使用 process lock／LaunchAgent 保證同一使用者只執行一份。
+- Windows 使用 named mutex，macOS 使用 process lock 保證同一使用者只執行一份。
 - 啟動本機 API、等待健康檢查成功並維持系統列或選單列圖示。
 - 第二次啟動時通知既有程序開啟主畫面，不另開伺服器。
 - API 異常結束時有限次數自動重啟，持續失敗則顯示可理解的錯誤。
@@ -306,7 +306,7 @@ SQLite 是單機版唯一的狀態來源，不需要另外安裝資料庫服務�
 
 - Python 應用採 PyInstaller `onedir`／macOS `.app` bundle，不採難以更新與除錯的巨大 `onefile`。
 - Windows 安裝器採 Inno Setup，預設 current-user install。
-- macOS 產出 Apple Silicon `.app` 與 `.dmg`；使用 Login Item／LaunchAgent 自動啟動，選單列提供開啟與結束功能。
+- macOS 產出 Apple Silicon `.app` 與 `.dmg`；不建立 Login Item／LaunchAgent，選單列提供開啟與結束功能。
 - `yt-dlp.exe`、FFmpeg、FFprobe、JS runtime 與授權文件作為獨立檔案散布。
 - 發布頁與「關於」畫面必須列出第三方元件、版本與授權。
 - 未購買程式碼簽章憑證前，測試版需清楚說明 Windows SmartScreen 可能顯示未知發行者。
@@ -318,10 +318,10 @@ SQLite 是單機版唯一的狀態來源，不需要另外安裝資料庫服務�
 ### 安裝與啟動
 
 - 標準 Windows 使用者與非管理員 Mac 使用者可完成安裝／首次啟動。
-- 重新登入與重新開機後，背景程式自動啟動。
+- 重新登入與重新開機後，背景程式不會自動啟動；使用者手動開啟 App 後功能正常。
 - 不出現命令提示字元視窗。
 - 重複啟動不產生第二份 worker。
-- 解除安裝後不再自動啟動。
+- 新版啟動與解除安裝都會清除舊預覽版登入自動啟動設定。
 - macOS App 在 Apple Silicon 上通過 codesign、Gatekeeper 與 notarization 驗證；測試版則必須清楚標示尚未公證。
 
 ### 功能
@@ -384,10 +384,10 @@ SQLite 是單機版唯一的狀態來源，不需要另外安裝資料庫服務�
 
 ## 15. 完成定義
 
-只有同時滿足以下條件，才可稱為「使用者安裝一次，以後開機即可使用」：
+只有同時滿足以下條件，才可稱為「使用者安裝一次，以後直接開啟即可使用」：
 
 - 乾淨 Windows 電腦或 Mac 不需預裝開發工具即可安裝。
-- 開機自動啟動且沒有終端機視窗。
+- 手動開啟時不出現終端機視窗，重新開機後不會自行啟動。
 - 一般公開影片可在目標測試集完成實際下載。
 - MP3 與逐字稿在支援規格上完成端到端測試。
 - 更新、回復、解除安裝與隱私邊界都有實測證據。
@@ -402,7 +402,6 @@ SQLite 是單機版唯一的狀態來源，不需要另外安裝資料庫服務�
 - [faster-whisper：CPU INT8 參考數據](https://github.com/SYSTRAN/faster-whisper)
 - [Python sqlite3：免獨立伺服器的磁碟資料庫](https://docs.python.org/3/library/sqlite3.html)
 - [FFmpeg：散布與授權要求](https://ffmpeg.org/legal.html)
-- [Apple Service Management：Login Item 與 LaunchAgent](https://developer.apple.com/documentation/servicemanagement/)
 - [Apple：macOS 軟體公證](https://developer.apple.com/documentation/security/notarizing-macos-software-before-distribution)
 - [PyInstaller：macOS 簽章與 Apple Silicon](https://pyinstaller.org/en/stable/feature-notes.html)
 - [whisper.cpp：Apple Silicon Metal 後端](https://github.com/ggml-org/whisper.cpp)

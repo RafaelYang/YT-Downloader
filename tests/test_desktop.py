@@ -1,5 +1,4 @@
 import json
-import plistlib
 import sys
 from pathlib import Path
 
@@ -10,17 +9,15 @@ from desktop_app import (
     health_url,
     launch_url,
     pot_provider_resources,
+    remove_legacy_autostart_cli,
     reserve_loopback_port,
 )
 import desktop_app
 from desktop_config import model_dir, output_dir, user_data_dir
 import desktop_platform
-from desktop_platform import install_macos_autostart, macos_launch_agent_path, open_folder
+from desktop_platform import macos_launch_agent_path, open_folder, remove_legacy_autostart
 from desktop_platform import (
-    install_windows_autostart,
     remove_windows_autostart,
-    windows_autostart_command,
-    windows_autostart_enabled,
 )
 
 
@@ -91,40 +88,42 @@ def test_instance_lock_allows_only_one_owner(tmp_path):
     second.release()
 
 
-def test_macos_launch_agent_contents(tmp_path):
-    arguments = ["/Applications/YT Downloader.app/Contents/MacOS/desktop_app", "--background"]
-    path = install_macos_autostart(tmp_path, arguments)
-    assert path == macos_launch_agent_path(tmp_path)
-    with path.open("rb") as handle:
-        payload = plistlib.load(handle)
-    assert payload["ProgramArguments"] == arguments
-    assert payload["RunAtLoad"] is True
-    if sys.platform == "darwin":
-        assert path.stat().st_mode & 0o777 == 0o600
-
-
-def test_autostart_preference_round_trip(tmp_path, monkeypatch):
-    monkeypatch.setattr(desktop_platform, "autostart_preference_path", lambda: tmp_path / "pref.json")
-    assert desktop_platform.autostart_preference() is None
-    desktop_platform.set_autostart_preference(False)
-    assert desktop_platform.autostart_preference() is False
-    desktop_platform.set_autostart_preference(True)
-    assert desktop_platform.autostart_preference() is True
-
-
-def test_windows_autostart_round_trip_uses_current_user_registry():
+def test_remove_windows_legacy_autostart_uses_current_user_registry():
     registry = FakeWindowsRegistry()
-    command = windows_autostart_command(
-        [r"C:\Program Files\YT Downloader\YT Downloader.exe", "--background"]
+    registry.values[desktop_platform.WINDOWS_RUN_VALUE_NAME] = (
+        '"C:\\Program Files\\YT Downloader\\YT Downloader.exe" --background',
+        registry.REG_SZ,
     )
-
-    assert command == '"C:\\Program Files\\YT Downloader\\YT Downloader.exe" --background'
-    assert not windows_autostart_enabled(registry)
-    assert install_windows_autostart(registry, command) == command
-    assert windows_autostart_enabled(registry)
     assert remove_windows_autostart(registry)
-    assert not windows_autostart_enabled(registry)
+    assert registry.values == {}
     assert not remove_windows_autostart(registry)
+
+
+def test_remove_macos_legacy_autostart_and_preference(tmp_path, monkeypatch):
+    launch_agents = tmp_path / "LaunchAgents"
+    launch_agent = macos_launch_agent_path(launch_agents)
+    launch_agent.parent.mkdir(parents=True)
+    launch_agent.write_text("legacy", encoding="utf-8")
+    preference = tmp_path / "autostart.json"
+    preference.write_text('{"enabled": true}', encoding="utf-8")
+
+    monkeypatch.setattr(desktop_platform.sys, "platform", "darwin")
+    monkeypatch.setattr(
+        desktop_platform,
+        "macos_launch_agent_path",
+        lambda launch_agents_dir=None: launch_agent,
+    )
+    monkeypatch.setattr(desktop_platform, "autostart_preference_path", lambda: preference)
+
+    assert remove_legacy_autostart()
+    assert not launch_agent.exists()
+    assert not preference.exists()
+    assert not remove_legacy_autostart()
+
+
+def test_remove_legacy_autostart_cli_rejects_unsupported_platform(monkeypatch):
+    monkeypatch.setattr(desktop_app.sys, "platform", "linux")
+    assert remove_legacy_autostart_cli() == 2
 
 
 def test_local_urls_do_not_expose_token_in_health_endpoint():

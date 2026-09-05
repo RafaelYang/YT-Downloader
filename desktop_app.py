@@ -31,15 +31,8 @@ from desktop_config import (
     user_data_dir,
 )
 from desktop_platform import (
-    autostart_preference,
-    install_macos_autostart,
-    install_windows_autostart,
-    macos_autostart_enabled,
     open_output_folder,
-    remove_macos_autostart,
-    remove_windows_autostart,
-    set_autostart_preference,
-    windows_autostart_enabled,
+    remove_legacy_autostart,
 )
 
 
@@ -310,22 +303,6 @@ def run_tray(server: Any, port: int, token: str) -> None:
     def on_open(_icon: Any = None, _item: Any = None) -> None:
         webbrowser.open(launch_url(port, token))
 
-    def on_autostart(_icon: Any, _item: Any) -> None:
-        if sys.platform == "darwin":
-            if macos_autostart_enabled():
-                remove_macos_autostart()
-                set_autostart_preference(False)
-            else:
-                install_macos_autostart()
-                set_autostart_preference(True)
-        elif sys.platform.startswith("win"):
-            if windows_autostart_enabled():
-                remove_windows_autostart()
-                set_autostart_preference(False)
-            else:
-                install_windows_autostart()
-                set_autostart_preference(True)
-
     def on_quit(icon: Any, _item: Any) -> None:
         server.should_exit = True
         icon.stop()
@@ -342,14 +319,6 @@ def run_tray(server: Any, port: int, token: str) -> None:
     menu = pystray.Menu(
         pystray.MenuItem("開啟 YT Downloader", on_open, default=True),
         pystray.MenuItem("開啟下載資料夾", lambda _icon, _item: open_output_folder()),
-        pystray.MenuItem(
-            "登入後自動啟動",
-            on_autostart,
-            checked=lambda _item: (
-                (sys.platform == "darwin" and macos_autostart_enabled())
-                or (sys.platform.startswith("win") and windows_autostart_enabled())
-            ),
-        ),
         pystray.Menu.SEPARATOR,
         pystray.MenuItem("結束", on_quit),
     )
@@ -389,25 +358,12 @@ def wait_without_tray(server: Any) -> None:
         pass
 
 
-def configure_autostart(enable: bool) -> int:
+def remove_legacy_autostart_cli() -> int:
     if sys.platform != "darwin" and not sys.platform.startswith("win"):
-        print("目前只支援 macOS 與 Windows 自動啟動設定。")
+        print("目前只支援清除 macOS 與 Windows 的舊版登入自動啟動設定。")
         return 2
-    if enable:
-        if sys.platform == "darwin":
-            destination = str(install_macos_autostart())
-        else:
-            destination = install_windows_autostart()
-        print(f"已設定登入後自動啟動：{destination}")
-        set_autostart_preference(True)
-    else:
-        removed = (
-            remove_macos_autostart()
-            if sys.platform == "darwin"
-            else remove_windows_autostart()
-        )
-        set_autostart_preference(False)
-        print("已移除登入自動啟動。" if removed else "尚未設定登入自動啟動。")
+    removed = remove_legacy_autostart()
+    print("已清除舊版登入自動啟動設定。" if removed else "沒有舊版登入自動啟動設定。")
     return 0
 
 
@@ -415,9 +371,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=PRODUCT_NAME)
     parser.add_argument("--background", action="store_true", help="啟動後不要自動開啟瀏覽器")
     parser.add_argument("--no-tray", action="store_true", help="停用選單列圖示（測試用）")
-    parser.add_argument("--no-autostart", action="store_true", help="不要在封裝版首次啟動時設定自動啟動")
-    parser.add_argument("--install-autostart", action="store_true", help="設定登入後自動啟動")
-    parser.add_argument("--remove-autostart", action="store_true", help="移除登入自動啟動")
+    parser.add_argument("--remove-autostart", action="store_true", help="清除舊版登入自動啟動設定")
     parser.add_argument("--status", action="store_true", help="顯示背景服務狀態")
     parser.add_argument("--port", type=int, default=DEFAULT_PORT, help=argparse.SUPPRESS)
     return parser
@@ -425,10 +379,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
-    if args.install_autostart:
-        return configure_autostart(True)
     if args.remove_autostart:
-        return configure_autostart(False)
+        return remove_legacy_autostart_cli()
     if args.status:
         state = read_runtime_state()
         running = bool(state and is_healthy(state["port"]))
@@ -437,6 +389,16 @@ def main(argv: list[str] | None = None) -> int:
     if not 1024 <= args.port <= 65535:
         print("連接埠必須介於 1024 到 65535。", file=sys.stderr)
         return 2
+
+    if (
+        getattr(sys, "frozen", False)
+        and (sys.platform == "darwin" or sys.platform.startswith("win"))
+    ):
+        try:
+            if remove_legacy_autostart():
+                print("已清除舊版登入自動啟動設定；之後只會在手動開啟 App 時執行。")
+        except OSError as exc:
+            print(f"⚠️ 無法清除舊版登入自動啟動設定：{exc}", file=sys.stderr)
 
     paths = ensure_desktop_directories()
     lock = InstanceLock(paths["data"] / "runtime.lock")
@@ -472,22 +434,6 @@ def main(argv: list[str] | None = None) -> int:
         if not wait_for_server(args.port, thread):
             print("本機服務啟動失敗。", file=sys.stderr)
             return 1
-
-        if (
-            getattr(sys, "frozen", False)
-            and (sys.platform == "darwin" or sys.platform.startswith("win"))
-            and not args.no_autostart
-        ):
-            preference = autostart_preference()
-            if preference is not False:
-                if sys.platform == "darwin":
-                    # Rewriting also repairs the executable path if the App was moved.
-                    install_macos_autostart()
-                else:
-                    # Rewriting repairs the executable path after an installer upgrade.
-                    install_windows_autostart()
-                if preference is None:
-                    set_autostart_preference(True)
 
         if not args.background:
             webbrowser.open(launch_url(args.port, token))

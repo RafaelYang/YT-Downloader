@@ -14,8 +14,8 @@
 ## 目前狀態
 
 - 網頁核心可在 Windows 與 macOS 本機執行。
-- Apple Silicon 桌面啟動器已具備選單列、單一執行個體、loopback API
-  憑證與 LaunchAgent 自動啟動。
+- Apple Silicon 桌面啟動器已具備選單列、單一執行個體與 loopback API
+  憑證；只在使用者手動開啟 App 時執行。
 - FFmpeg 9.0.1 arm64 已固定版本與 SHA-256，可納入開發預覽 App。
 - 高畫質相容層使用固定版本的 Node.js 24.20.0 arm64 與
   bgutil-ytdlp-pot-provider 1.3.2；內部服務只監聽隨機 `127.0.0.1` 連接埠。
@@ -47,7 +47,7 @@ node --check static/app.js
 啟動桌面開發版（按 Control-C 結束）：
 
 ```bash
-.venv/bin/python desktop_app.py --no-tray --no-autostart
+.venv/bin/python desktop_app.py --no-tray
 ```
 
 正常啟動會開啟瀏覽器；加上 `--background` 可只在背景執行。開發模式不會
@@ -69,7 +69,7 @@ scripts/build_macos.sh
 輸出位置：
 
 - `dist/YT Downloader by 學人新創.app`
-- `dist/YT-Downloader-by-學人新創-0.1.0-dev-macOS-arm64.zip`
+- `dist/YT-Downloader-0.1.1-dev-macOS-arm64.zip`
 
 這個預覽包在目前開發機上採 ad-hoc 簽章。正式給一般使用者下載前，仍須
 使用學人新創的 Apple Developer ID 對 App 與內含執行檔重新簽章、送 Apple
@@ -83,20 +83,20 @@ x64 與 macOS 13 以上 Apple Silicon 版本；Intel Mac 尚無可安裝版本�
 
 Windows：
 
-1. 下載 `YT-Downloader-by-Xueren-0.1.0-dev-Windows-x64-Setup.exe` 並執行。
+1. 下載 `YT-Downloader-0.1.1-dev-Windows-x64-Setup.exe` 並執行。
 2. 安裝在目前使用者的 Local AppData，不需要管理員權限；安裝完成後可由桌面
    或開始功能表啟動，程式會常駐系統列。
 3. 預覽版尚未簽章，因此 SmartScreen 可能顯示「未知的發行者」；只應從此私人
    Release 下載，並先核對 `SHA256SUMS-windows.txt`。
-4. 第一次正常啟動會設定登入後自動執行，可從系統列選單隨時關閉。
+4. 程式只會在使用者從桌面或開始功能表手動開啟後執行，不會隨登入 Windows 自動啟動。
 
 macOS：
 
 1. 從私人 GitHub 專案的 Releases 下載 ZIP，解壓縮後將 App 移到「應用程式」。
 2. 因預覽版尚未經 Apple 公證，第一次請在 Finder 對 App 按 Control 並選擇
    「打開」；若系統仍攔截，可到「系統設定 → 隱私權與安全性」選擇允許打開。
-3. App 啟動後會在選單列常駐，並可設定登入後自動啟動；電腦必須保持開機，
-   下載與逐字稿才會繼續執行。
+3. App 只會在使用者手動開啟後於選單列常駐，不會隨登入 macOS 自動啟動；
+   執行下載或逐字稿期間，電腦與 App 都必須保持運作。
 4. 第一次產生逐字稿時需要下載 Whisper 模型，因此會比之後的使用久。
 
 YouTube 可能依影片、帳號或網路環境限制擷取。請只處理自己擁有、已獲授權
@@ -109,14 +109,11 @@ YouTube 可能依影片、帳號或網路環境限制擷取。請只處理自己
 - Windows 完成成品：每次解析會在 `%USERPROFILE%\Downloads\` 建立資料夾。
 - macOS 完成成品：每次解析會在 `~/Downloads/` 建立資料夾。資料夾例如
   `影片標題_260831_1405/`；同分鐘、同標題重複時依序加上 `_2`、`_3`。
-- Windows 自動啟動：目前使用者的 `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`。
-- macOS 自動啟動：`~/Library/LaunchAgents/tw.xueren.yt-downloader.plist`。
+- `0.1.1-dev` 起不再建立 Windows Run 登錄或 macOS LaunchAgent；新版首次啟動會清除舊預覽版留下的登入自動啟動設定。
 
-封裝版首次正常啟動會建立 LaunchAgent；選單列可關閉「登入後自動啟動」。
-原始碼開發版若要測試，可明確執行：
+若要手動清理舊版設定，可執行：
 
 ```bash
-.venv/bin/python desktop_app.py --install-autostart
 .venv/bin/python desktop_app.py --remove-autostart
 ```
 

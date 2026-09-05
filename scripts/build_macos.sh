@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 PYTHON_BIN="${PYTHON_BIN:-$PROJECT_ROOT/.venv/bin/python}"
 APP_PATH="$PROJECT_ROOT/dist/YT Downloader by 學人新創.app"
-ZIP_PATH="$PROJECT_ROOT/dist/YT-Downloader-by-學人新創-0.1.0-dev-macOS-arm64.zip"
+ZIP_PATH="$PROJECT_ROOT/dist/YT-Downloader-0.1.1-dev-macOS-arm64.zip"
 
 if [[ "$(uname -s)" != "Darwin" || "$(uname -m)" != "arm64" ]]; then
     echo "macOS Apple Silicon App 必須在 arm64 Mac 上建置。" >&2
