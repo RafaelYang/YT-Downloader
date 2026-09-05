@@ -1,2 +1,2 @@
-a2899cb07b20d1bc8c4c851975f15f252b11c8e88fba4c7b8ea15c96e3aa5b7f  YT-Downloader-0.1.2-dev-macOS-arm64.zip
-c6d06beaea88a4f7500b138089c3d0790881c896989ef6b1f62d0e48e71210c0  YT-Downloader-0.1.2-dev-Windows-x64-Setup.exe
+e62795f08ef4bf19aa394beb12fa220f8dd9f3af10a0afe587024a758778cdfd  YT-Downloader-0.1.3-dev-macOS-arm64.zip
+8d3dfcf47182707829219f2e65fb89a87ba2e656879c4e7e56f299549c2a6cf9  YT-Downloader-0.1.3-dev-Windows-x64-Setup.exe

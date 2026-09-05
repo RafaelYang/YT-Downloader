@@ -39,7 +39,7 @@ English＋繁中，兩者都有時間碼分段；英文模式每段先顯示英�
 - FFmpeg 9.0.1 arm64 已固定版本與 SHA-256，可納入開發預覽 App。
 - 高畫質相容層使用固定版本的 Node.js 24.20.0 arm64 與
   bgutil-ytdlp-pot-provider 1.3.2；內部服務只監聽隨機 `127.0.0.1` 連接埠。
-- `dist/` 已產出約 1.0 GB 的 `.app` 與 353,668,609 bytes 的 ZIP 開發預覽。
+- `dist/` 已產出 macOS Apple Silicon App 與 394,897,651 bytes 的 ZIP 開發預覽。
 - Windows 10／11 x64 current-user 安裝程式已在 GitHub `windows-2022` Runner
   完成建置、封裝版啟動及安裝／啟動／解除安裝生命週期測試。
 - MP4 會優先使用 H.264／AAC；若所選畫質只有 AV1／VP9，儲存前會自動
@@ -234,5 +234,9 @@ YouTube 可能依影片、帳號或網路環境限制擷取。請只處理自己
   App 深層簽章驗證與 ZIP 完整性檢查均通過。
 - macOS ZIP 大小為 394,897,651 bytes，SHA-256 為
   `e62795f08ef4bf19aa394beb12fa220f8dd9f3af10a0afe587024a758778cdfd`。
+- Windows GitHub Actions run `33962467334` 通過 54 項測試、封裝後 AI 元件
+  自我檢查、本機 API 健康檢查，以及安裝／啟動／舊版自啟清理／解除安裝流程。
+- Windows 安裝檔大小為 316,634,892 bytes，SHA-256 為
+  `8d3dfcf47182707829219f2e65fb89a87ba2e656879c4e7e56f299549c2a6cf9`。
 - 測試期間 YouTube 對公開短片回傳反機器人阻擋，因此本次沒有把線上影片的
   完整下載／逐字稿列為通過；仍須以使用者網路環境的公開影片再次驗收。
