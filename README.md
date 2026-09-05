@@ -17,7 +17,10 @@
 
 - macOS Apple Silicon：`YT-Downloader-0.1.1-dev-macOS-arm64.zip`
 - Windows 10／11 x64：`YT-Downloader-0.1.1-dev-Windows-x64-Setup.exe`
-- 完整性核對：`SHA256SUMS.txt`
+
+GitHub 會直接在兩個安裝檔右側顯示 SHA-256。頁面最下方的 `Source code
+(zip)` 與 `Source code (tar.gz)` 是 GitHub 自動產生的原始碼，不是安裝檔；
+一般使用者不需要下載。
 
 本機重新下載的測試包統一放在「下載項目 → YT Downloader 安裝程式 →
 版本號」資料夾，與程式產生的影片資料夾分開。此 GitHub 專案目前是私人專案，
