@@ -41,7 +41,8 @@
   bgutil-ytdlp-pot-provider 1.3.2；內部服務只監聽隨機 `127.0.0.1` 連接埠。
 - `dist/` 已產出 macOS Apple Silicon App 與 394,903,369 bytes 的 ZIP 開發預覽。
 - Windows 10／11 x64 current-user 安裝程式已在 GitHub `windows-2022` Runner
-  完成建置、封裝版啟動及安裝／啟動／解除安裝生命週期測試。
+  完成建置、封裝版啟動及安裝／啟動／解除安裝生命週期測試；安裝檔大小為
+  316,646,059 bytes。
 - MP4 會優先使用 H.264／AAC；若所選畫質只有 AV1／VP9，儲存前會自動
   轉為 H.264／AAC MP4，避免 QuickTime 只播放聲音。
 - 逐字稿使用 Whisper `turbo` 自動辨識原文語言；翻譯模式另用固定版本的
@@ -259,3 +260,23 @@ YouTube 可能依影片、帳號或網路環境限制擷取。請只處理自己
   Inno Setup 安裝、手動啟動、舊版自啟清理與解除安裝生命週期。
 - Windows 安裝檔大小為 316,618,922 bytes，SHA-256 為
   `eaded6f0594d1f03038f582d5e7dd0c64569bbd5d28b43d5f2be86f14e9c474c`。
+
+## 2026-09-06 原文逐字稿模式
+
+- 逐字稿選項改為「原文」與「原文＋繁中翻譯」；Whisper `turbo` 自動判斷
+  影片語言，翻譯模式在每個時間碼分段先放原文，再放台灣繁體中文。
+- 翻譯改用固定版本、逐檔驗證 SHA-256 的本機 M2M100 多語模型；第一次使用
+  翻譯模式會先詢問是否下載約 1.9 GB 模型，取消就不建立逐字稿工作。
+- `68 passed`，Python 編譯、JavaScript 語法與 macOS／Windows 封裝版啟動
+  檢查通過；macOS 封裝版另以完整模型完成英文及日文實際推論。
+- macOS ZIP 大小為 394,903,369 bytes，SHA-256 為
+  `73b0d47d80185db0718ecc7b99cc7bc3988c7e71ca13ffa42bae04155d51f079`；
+  App 深層簽章、ZIP 完整性與所有內附工具健康檢查均通過。
+- Windows GitHub Actions run `34019453616` 通過來源測試、固定執行環境驗證、
+  封裝版啟動，以及靜默安裝／啟動／舊版自啟清理／解除安裝生命週期。
+- Windows 安裝檔大小為 316,646,059 bytes，SHA-256 為
+  `2842c04f35fa65752927ade2125c45d65372fcf8b47102784dc8fd1edc895e8d`。
+- Google Drive 公開下載資料夾已只保留上述兩個 `0.1.5-dev` 檔案；兩者的
+  雲端位元組數與本機一致，並確認「知道連結的任何人」可檢視及直接下載。
+- Windows 版仍未做 Authenticode 簽章，也尚未在乾淨 Windows 10／11 實機
+  執行影片、音檔與完整模型逐字稿驗收。
