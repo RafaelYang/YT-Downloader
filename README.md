@@ -18,10 +18,10 @@
 一般使用者請從 [YT-Downloader Google 雲端硬碟](https://drive.google.com/drive/folders/1Y4tBWJJzqqnewNeZWbWIeTxHY1m-3Kg4)
 下載最新的雙平台安裝檔：
 
-- macOS Apple Silicon：`YT-Downloader-0.1.5-dev-macOS-arm64.zip`
-- Windows 10／11 x64：`YT-Downloader-0.1.5-dev-Windows-x64-Setup.exe`
+- macOS Apple Silicon：`YT-Downloader-0.1.6-dev-macOS-arm64.zip`
+- Windows 10／11 x64：`YT-Downloader-0.1.6-dev-Windows-x64-Setup.exe`
 
-私人 [GitHub Release v0.1.5-dev](https://github.com/RafaelYang/YT-Downloader/releases/tag/v0.1.5-dev)
+私人 [GitHub Release v0.1.6-dev](https://github.com/RafaelYang/YT-Downloader/releases/tag/v0.1.6-dev)
 保留給受邀的開發與測試成員，GitHub 會在安裝檔右側顯示 SHA-256。
 頁面最下方的 `Source code (zip)` 與 `Source code (tar.gz)` 是 GitHub 自動產生的
 原始碼，不是安裝檔；一般使用者不需要下載。
@@ -95,7 +95,7 @@ scripts/build_macos.sh
 輸出位置：
 
 - `dist/YT Downloader by 學人新創.app`
-- `dist/YT-Downloader-0.1.5-dev-macOS-arm64.zip`
+- `dist/YT-Downloader-0.1.6-dev-macOS-arm64.zip`
 
 這個預覽包在目前開發機上採 ad-hoc 簽章。正式給一般使用者下載前，仍須
 使用學人新創的 Apple Developer ID 對 App 與內含執行檔重新簽章、送 Apple
@@ -109,7 +109,7 @@ x64 與 macOS 13 以上 Apple Silicon 版本；Intel Mac 尚無可安裝版本�
 
 Windows：
 
-1. 下載 `YT-Downloader-0.1.5-dev-Windows-x64-Setup.exe` 並執行。
+1. 下載 `YT-Downloader-0.1.6-dev-Windows-x64-Setup.exe` 並執行。
 2. 安裝在目前使用者的 Local AppData，不需要管理員權限；安裝完成後可由桌面
    或開始功能表啟動，程式會常駐系統列。
 3. 預覽版尚未簽章，因此 SmartScreen 可能顯示「未知的發行者」；只應從此私人

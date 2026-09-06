@@ -6,7 +6,7 @@ on:
       release_tag:
         description: Existing prerelease tag to receive the installer
         required: true
-        default: v0.1.5-dev
+        default: v0.1.6-dev
         type: string
       publish_release:
         description: Attach the verified installer to the private GitHub Release
@@ -132,7 +132,7 @@ jobs:
             throw "Inno Setup failed."
           }
 
-          $Installer = (Resolve-Path "dist\installer\YT-Downloader-0.1.5-dev-Windows-x64-Setup.exe").Path
+          $Installer = (Resolve-Path "dist\installer\YT-Downloader-0.1.6-dev-Windows-x64-Setup.exe").Path
           $Hash = (Get-FileHash -Path $Installer -Algorithm SHA256).Hash.ToLowerInvariant()
           $Checksum = Join-Path (Split-Path -Parent $Installer) "SHA256SUMS-windows.txt"
           [System.IO.File]::WriteAllText(
@@ -146,7 +146,7 @@ jobs:
       - name: Smoke-test installer lifecycle
         shell: pwsh
         run: |
-          $Installer = (Resolve-Path "dist\installer\YT-Downloader-0.1.5-dev-Windows-x64-Setup.exe").Path
+          $Installer = (Resolve-Path "dist\installer\YT-Downloader-0.1.6-dev-Windows-x64-Setup.exe").Path
           $InstallDir = Join-Path $env:RUNNER_TEMP "yt-downloader-installed"
           $Executable = Join-Path $InstallDir "YT Downloader by 學人新創.exe"
           $env:YT_DATA_DIR = Join-Path $env:RUNNER_TEMP "yt-downloader-installer-smoke-data"
@@ -257,9 +257,9 @@ jobs:
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v7
         with:
-          name: YT-Downloader-0.1.5-dev-Windows-x64
+          name: YT-Downloader-0.1.6-dev-Windows-x64
           path: |
-            dist/installer/YT-Downloader-0.1.5-dev-Windows-x64-Setup.exe
+            dist/installer/YT-Downloader-0.1.6-dev-Windows-x64-Setup.exe
             dist/installer/SHA256SUMS-windows.txt
           compression-level: 0
           if-no-files-found: error
@@ -273,5 +273,5 @@ jobs:
         run: |
           gh release view $env:RELEASE_TAG
           gh release upload $env:RELEASE_TAG `
-            "dist\installer\YT-Downloader-0.1.5-dev-Windows-x64-Setup.exe#Windows 10/11 x64 安裝程式" `
+            "dist\installer\YT-Downloader-0.1.6-dev-Windows-x64-Setup.exe#Windows 10/11 x64 安裝程式" `
             --clobber

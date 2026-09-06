@@ -11,7 +11,7 @@ from typing import Mapping
 PRODUCT_NAME = "YT Downloader by 學人新創"
 PRODUCT_SLUG = "YT Downloader"
 PUBLISHER_NAME = "學人新創"
-APP_VERSION = "0.1.5-dev"
+APP_VERSION = "0.1.6-dev"
 BUNDLE_ID = "tw.xueren.yt-downloader"
 DEFAULT_PORT = 18765
 

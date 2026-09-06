@@ -293,12 +293,8 @@ def wait_for_server(port: int, server_thread: threading.Thread, timeout: float =
 def run_tray(server: Any, port: int, token: str) -> None:
     """Run the native tray/menu-bar loop on the main thread."""
     import pystray
-    from PIL import Image, ImageDraw
 
-    image = Image.new("RGBA", (64, 64), (92, 69, 220, 255))
-    draw = ImageDraw.Draw(image)
-    draw.rounded_rectangle((2, 2, 61, 61), radius=14, fill=(92, 69, 220, 255))
-    draw.polygon(((25, 17), (25, 47), (49, 32)), fill=(255, 255, 255, 255))
+    image = load_tray_image()
 
     def on_open(_icon: Any = None, _item: Any = None) -> None:
         webbrowser.open(launch_url(port, token))
@@ -343,6 +339,21 @@ def run_tray(server: Any, port: int, token: str) -> None:
             and nsapplication.delegate() is reopen_delegate
         ):
             nsapplication.setDelegate_(None)
+
+
+def load_tray_image() -> Any:
+    """Load the branded icon, retaining a generated fallback for source recovery."""
+    from PIL import Image, ImageDraw
+
+    try:
+        with Image.open(resource_dir() / "app-icon.png") as source:
+            return source.convert("RGBA").resize((64, 64), Image.Resampling.LANCZOS)
+    except (OSError, ValueError):
+        image = Image.new("RGBA", (64, 64), (92, 69, 220, 255))
+        draw = ImageDraw.Draw(image)
+        draw.rounded_rectangle((2, 2, 61, 61), radius=14, fill=(92, 69, 220, 255))
+        draw.polygon(((25, 17), (25, 47), (49, 32)), fill=(255, 255, 255, 255))
+        return image
 
 
 def wait_without_tray(server: Any) -> None:

@@ -12,6 +12,7 @@ PROVIDER_ROOT = PROJECT_ROOT / "vendor" / "bgutil-ytdlp-pot-provider"
 
 datas = [
     (str(PROJECT_ROOT / "static"), "static"),
+    (str(PROJECT_ROOT / "assets" / "app-icon.png"), "."),
     (str(PROJECT_ROOT / "THIRD_PARTY_NOTICES.md"), "."),
     (str(PROVIDER_ROOT), "pot-provider"),
     (str(WINDOWS_VENDOR / "node-LICENSE"), "licenses"),

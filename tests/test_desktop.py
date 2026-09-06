@@ -9,6 +9,7 @@ from desktop_app import (
     create_macos_reopen_delegate,
     health_url,
     launch_url,
+    load_tray_image,
     pot_provider_resources,
     remove_legacy_autostart_cli,
     reserve_loopback_port,
@@ -158,6 +159,20 @@ def test_frozen_stdio_writes_startup_log(tmp_path, monkeypatch):
     log = (tmp_path / "logs" / "desktop.log").read_text(encoding="utf-8")
     assert "YT Downloader by 學人新創" in log
     assert "startup diagnostic" in log
+
+
+def test_tray_image_loads_branded_asset(tmp_path, monkeypatch):
+    from PIL import Image
+
+    Image.new("RGBA", (128, 128), (255, 82, 113, 255)).save(
+        tmp_path / "app-icon.png"
+    )
+    monkeypatch.setattr(desktop_app, "resource_dir", lambda: tmp_path)
+
+    image = load_tray_image()
+
+    assert image.size == (64, 64)
+    assert image.getpixel((32, 32)) == (255, 82, 113, 255)
 
 
 def test_macos_reopen_delegate_invokes_open_callback():

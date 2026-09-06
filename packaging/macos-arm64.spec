@@ -10,6 +10,7 @@ APP_NAME = "YT Downloader by 學人新創"
 
 datas = [
     (str(PROJECT_ROOT / "static"), "static"),
+    (str(PROJECT_ROOT / "assets" / "app-icon.png"), "."),
     (str(PROJECT_ROOT / "THIRD_PARTY_NOTICES.md"), "."),
     (
         str(PROJECT_ROOT / "vendor" / "bgutil-ytdlp-pot-provider"),
@@ -108,12 +109,13 @@ coll = COLLECT(
 app = BUNDLE(
     coll,
     name=f"{APP_NAME}.app",
+    icon=str(PROJECT_ROOT / "assets" / "app-icon.icns"),
     bundle_identifier="tw.xueren.yt-downloader",
     info_plist={
         "CFBundleDisplayName": APP_NAME,
         "CFBundleName": APP_NAME,
-        "CFBundleShortVersionString": "0.1.5",
-        "CFBundleVersion": "5",
+        "CFBundleShortVersionString": "0.1.6",
+        "CFBundleVersion": "6",
         "LSMinimumSystemVersion": "13.0",
         "LSUIElement": True,
         "NSHighResolutionCapable": True,
