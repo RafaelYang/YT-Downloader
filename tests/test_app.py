@@ -156,8 +156,10 @@ def test_static_ids_match_frontend_lookup():
     assert '<select' not in html
     assert "預估值可能因 YouTube 串流合併而略有差異" not in html
     assert 'id="video-preview"' in html
-    assert 'id="transcript-language-zh"' in html
-    assert 'id="transcript-language-en"' in html
+    assert 'id="transcript-mode-original"' in html
+    assert 'id="transcript-mode-bilingual"' in html
+    assert '>原文<' in html
+    assert '>原文＋繁中翻譯<' in html
     assert 'role="radiogroup"' in html
     assert 'id="model-download-dialog"' in html
     assert 'id="model-download-cancel"' in html
@@ -364,66 +366,168 @@ def test_output_stems_prefix_video_title_and_identify_file_type():
     assert app_module.output_stem(title, "mp3") == "教學_剪輯_入門_音檔"
     assert app_module.output_stem(title, "transcript") == "教學_剪輯_入門_逐字稿"
     assert (
-        app_module.output_stem(title, "transcript", transcript_language="zh-TW")
-        == "教學_剪輯_入門_逐字稿_繁中"
+        app_module.output_stem(title, "transcript", transcript_mode="original")
+        == "教學_剪輯_入門_逐字稿_原文"
     )
     assert (
-        app_module.output_stem(title, "transcript", transcript_language="en")
-        == "教學_剪輯_入門_逐字稿_英文雙語"
+        app_module.output_stem(title, "transcript", transcript_mode="original-zh")
+        == "教學_剪輯_入門_逐字稿_原文加繁中翻譯"
     )
 
 
-def test_transcript_rendering_uses_timestamps_and_traditional_chinese():
+def test_original_transcript_uses_timestamps_and_preserves_japanese():
     segments = [
-        {"start": 1.2, "end": 4.8, "text": "这个视频解释了软件。"},
-        {"start": 65.0, "end": 70.0, "text": "点击下载按钮。"},
+        {"start": 1.2, "end": 4.8, "text": "今日は良い天気です。"},
+        {"start": 65.0, "end": 70.0, "text": "動画を始めます。"},
     ]
 
-    rendered = app_module.render_transcript("測試", "zh-TW", segments)
+    rendered = app_module.render_transcript("測試", "original", "ja", segments)
 
-    assert "語言：繁體中文分段" in rendered
-    assert "[00:01 → 00:05]\n這個影片解釋了軟體。" in rendered
-    assert "[01:05 → 01:10]\n點選下載按鈕。" in rendered
+    assert "輸出：原文" in rendered
+    assert "偵測語言：日文 (ja)" in rendered
+    assert "[00:01 → 00:05]\n今日は良い天気です。" in rendered
+    assert "[01:05 → 01:10]\n動画を始めます。" in rendered
 
 
-def test_english_transcript_places_english_before_chinese_for_every_segment():
+def test_translated_transcript_places_original_before_chinese_for_every_segment():
     segments = [
         {"start": 0.0, "end": 2.0, "text": "Hello everyone."},
         {"start": 2.0, "end": 5.0, "text": "Welcome to class."},
     ]
     translations = ["大家好。", "歡迎來上課。"]
 
-    rendered = app_module.render_transcript("Class", "en", segments, translations)
+    rendered = app_module.render_transcript(
+        "Class", "original-zh", "en", segments, translations
+    )
 
-    assert rendered.index("英文：Hello everyone.") < rendered.index("中文：大家好。")
-    assert rendered.index("英文：Welcome to class.") < rendered.index("中文：歡迎來上課。")
-    assert rendered.count("英文：") == rendered.count("中文：") == 2
+    assert rendered.index("原文：Hello everyone.") < rendered.index("繁中：大家好。")
+    assert rendered.index("原文：Welcome to class.") < rendered.index("繁中：歡迎來上課。")
+    assert rendered.count("原文：") == rendered.count("繁中：") == 2
 
 
-def test_transcript_endpoint_rejects_unsupported_language(monkeypatch):
+def test_chinese_original_is_normalized_to_taiwan_traditional_chinese():
+    segments = [{"start": 0.0, "end": 2.0, "text": "这个软件可以点击下载。"}]
+
+    rendered = app_module.render_transcript("測試", "original", "zh", segments)
+
+    assert "這個軟體可以點選下載。" in rendered
+
+
+@pytest.mark.parametrize(
+    ("whisper_language", "translator_language"),
+    [("ja", "ja"), ("en", "en"), ("jw", "jv"), ("nn", "no"), ("yue", "zh")],
+)
+def test_translation_source_language_maps_whisper_codes(
+    whisper_language, translator_language
+):
+    assert (
+        app_module.translation_source_language(whisper_language)
+        == translator_language
+    )
+
+
+def test_translation_source_language_explains_unsupported_language():
+    with pytest.raises(ValueError, match='請改選「原文」'):
+        app_module.translation_source_language("haw")
+
+
+def test_chinese_translation_does_not_load_multilingual_model(monkeypatch):
+    monkeypatch.setattr(
+        app_module,
+        "get_translation_model",
+        lambda: (_ for _ in ()).throw(AssertionError("中文不應載入翻譯模型")),
+    )
+
+    assert app_module.translate_segments(["这个软件。"], "zh") == ["這個軟體。"]
+
+
+def test_transcript_endpoint_rejects_unsupported_mode(monkeypatch):
     monkeypatch.setattr(app_module, "resolved_jobs", {"1234abcd": {"title": "test"}})
     client = TestClient(app_module.app, base_url="http://127.0.0.1")
 
-    response = client.get("/api/process-transcript/1234abcd?language=fr")
+    response = client.get("/api/process-transcript/1234abcd?mode=translated-only")
 
     assert response.status_code == 400
-    assert response.json()["detail"] == "逐字稿語言只支援繁體中文或英文雙語"
+    assert response.json()["detail"] == "逐字稿模式只支援原文或原文加繁中翻譯"
 
 
-def test_transcript_model_status_prompts_only_for_missing_chinese_model(monkeypatch):
+def test_transcript_endpoint_auto_detects_japanese_and_writes_bilingual_file(
+    tmp_path, monkeypatch
+):
+    job_id = "1234abcd"
+    monkeypatch.setattr(app_module, "DOWNLOAD_DIR", tmp_path)
+    monkeypatch.setattr(app_module, "IS_DESKTOP", False)
+    monkeypatch.setattr(
+        app_module,
+        "resolved_jobs",
+        {
+            job_id: {
+                "url": "https://youtu.be/example",
+                "title": "日本語テスト",
+                "raw_title": "日本語テスト",
+                "strategy": "android",
+            }
+        },
+    )
+
+    def fake_download(_url, task_dir, strategy, _opts):
+        (task_dir / "source.m4a").write_bytes(b"audio")
+        return strategy
+
+    def fake_ffmpeg(command, **_kwargs):
+        Path(command[-1]).write_bytes(b"wav")
+
+    class FakeWhisper:
+        @staticmethod
+        def transcribe(*_args, **kwargs):
+            assert "language" not in kwargs
+            return {
+                "language": "ja",
+                "segments": [
+                    {"start": 0.0, "end": 2.0, "text": "今日は良い天気です。"}
+                ],
+            }
+
+    def fake_translate(texts, source_language):
+        assert texts == ["今日は良い天気です。"]
+        assert source_language == "ja"
+        return ["今天天氣好。"]
+
+    monkeypatch.setattr(app_module, "download_with_fallback", fake_download)
+    monkeypatch.setattr(app_module.subprocess, "run", fake_ffmpeg)
+    monkeypatch.setattr(app_module, "get_whisper_model", lambda: FakeWhisper())
+    monkeypatch.setattr(app_module, "translate_segments", fake_translate)
+
+    client = TestClient(app_module.app, base_url="http://127.0.0.1")
+    response = client.get(
+        f"/api/process-transcript/{job_id}?mode=original-zh"
+    )
+
+    assert response.status_code == 200
+    assert '"step": "done"' in response.text
+    assert '"step": "error"' not in response.text
+    output = Path(app_module.resolved_jobs[job_id]["outputs"]["transcript"])
+    assert output.name == "日本語テスト_逐字稿_原文加繁中翻譯.txt"
+    content = output.read_text(encoding="utf-8")
+    assert "偵測語言：日文 (ja)" in content
+    assert "原文：今日は良い天気です。" in content
+    assert "繁中：今天天氣好。" in content
+
+
+def test_transcript_model_status_prompts_only_for_missing_original_model(monkeypatch):
     monkeypatch.setattr(app_module, "is_whisper_model_available", lambda: False)
     monkeypatch.setattr(
         app_module,
         "is_translation_model_available",
-        lambda: (_ for _ in ()).throw(AssertionError("繁中模式不應檢查翻譯模型")),
+        lambda: (_ for _ in ()).throw(AssertionError("原文模式不應檢查翻譯模型")),
     )
     client = TestClient(app_module.app, base_url="http://127.0.0.1")
 
-    response = client.get("/api/transcript-model-status?language=zh-TW")
+    response = client.get("/api/transcript-model-status?mode=original")
 
     assert response.status_code == 200
     assert response.json() == {
-        "language": "zh-TW",
+        "mode": "original",
         "download_required": True,
         "models": [
             {
@@ -438,18 +542,18 @@ def test_transcript_model_status_prompts_only_for_missing_chinese_model(monkeypa
     }
 
 
-def test_transcript_model_status_lists_only_missing_english_translation(monkeypatch):
+def test_transcript_model_status_lists_only_missing_multilingual_translation(monkeypatch):
     monkeypatch.setattr(app_module, "is_whisper_model_available", lambda: True)
     monkeypatch.setattr(app_module, "is_translation_model_available", lambda: False)
     client = TestClient(app_module.app, base_url="http://127.0.0.1")
 
-    response = client.get("/api/transcript-model-status?language=en")
+    response = client.get("/api/transcript-model-status?mode=original-zh")
 
     assert response.status_code == 200
     data = response.json()
     assert data["download_required"] is True
-    assert data["total_size_label"] == "約 315 MB"
-    assert [model["id"] for model in data["models"]] == ["translation-en-zh"]
+    assert data["total_size_label"] == "約 1.9 GB"
+    assert [model["id"] for model in data["models"]] == ["translation-multilingual-zh"]
 
 
 def test_transcript_model_status_skips_prompt_when_models_are_installed(monkeypatch):
@@ -457,20 +561,20 @@ def test_transcript_model_status_skips_prompt_when_models_are_installed(monkeypa
     monkeypatch.setattr(app_module, "is_translation_model_available", lambda: True)
     client = TestClient(app_module.app, base_url="http://127.0.0.1")
 
-    response = client.get("/api/transcript-model-status?language=en")
+    response = client.get("/api/transcript-model-status?mode=original-zh")
 
     assert response.status_code == 200
     assert response.json()["download_required"] is False
     assert response.json()["models"] == []
 
 
-def test_transcript_model_status_rejects_unsupported_language():
+def test_transcript_model_status_rejects_unsupported_mode():
     client = TestClient(app_module.app, base_url="http://127.0.0.1")
 
-    response = client.get("/api/transcript-model-status?language=fr")
+    response = client.get("/api/transcript-model-status?mode=translated-only")
 
     assert response.status_code == 400
-    assert response.json()["detail"] == "逐字稿語言只支援繁體中文或英文雙語"
+    assert response.json()["detail"] == "逐字稿模式只支援原文或原文加繁中翻譯"
 
 
 def test_desktop_outputs_for_one_job_share_timestamp_folder(tmp_path, monkeypatch):

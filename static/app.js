@@ -19,8 +19,8 @@ const qualityDialogBackdrop = qualityDialog.querySelector('.quality-dialog-backd
 const qualityOptions = document.getElementById('quality-options');
 const videoPreviewPanel = document.getElementById('video-preview-panel');
 const videoPreview = document.getElementById('video-preview');
-const transcriptLanguageOptions = Array.from(
-    document.querySelectorAll('.transcript-language-option'),
+const transcriptModeOptions = Array.from(
+    document.querySelectorAll('.transcript-mode-option'),
 );
 const modelDownloadDialog = document.getElementById('model-download-dialog');
 const modelDownloadDialogBackdrop = modelDownloadDialog.querySelector('.model-download-dialog-backdrop');
@@ -33,7 +33,7 @@ const modelDownloadConfirm = document.getElementById('model-download-confirm');
 let currentJobId = null;
 let availableQualities = [];
 let selectedQualityHeight = '';
-let selectedTranscriptLanguage = 'zh-TW';
+let selectedTranscriptMode = 'original';
 let transcriptModelCheckInProgress = false;
 let modelDownloadDialogResolver = null;
 const activeTasks = new Set();
@@ -120,7 +120,7 @@ async function prepareTranscriptTask() {
 
     try {
         const response = await fetch(
-            `/api/transcript-model-status?language=${encodeURIComponent(selectedTranscriptLanguage)}`,
+            `/api/transcript-model-status?mode=${encodeURIComponent(selectedTranscriptMode)}`,
         );
         const status = await response.json();
         if (!response.ok) {
@@ -162,7 +162,7 @@ function beginTask(type) {
         closeQualityDialog(false);
         qualityTrigger.disabled = true;
     } else if (type === 'transcript') {
-        transcriptLanguageOptions.forEach((option) => { option.disabled = true; });
+        transcriptModeOptions.forEach((option) => { option.disabled = true; });
     }
 
     // 設定按鈕為 loading 狀態
@@ -182,7 +182,7 @@ function beginTask(type) {
     if (type === 'mp4' && selectedQualityHeight) {
         apiPath += `?quality=${encodeURIComponent(selectedQualityHeight)}`;
     } else if (type === 'transcript') {
-        apiPath += `?language=${encodeURIComponent(selectedTranscriptLanguage)}`;
+        apiPath += `?mode=${encodeURIComponent(selectedTranscriptMode)}`;
     }
 
     // 開始 SSE 連線
@@ -269,7 +269,7 @@ function setTranscriptPreparationState(checking) {
     btn.disabled = checking;
     btn.querySelector('.btn-action-text').style.display = checking ? 'none' : 'inline';
     btn.querySelector('.btn-action-loading').style.display = checking ? 'inline-flex' : 'none';
-    transcriptLanguageOptions.forEach((option) => { option.disabled = checking; });
+    transcriptModeOptions.forEach((option) => { option.disabled = checking; });
 }
 
 
@@ -351,18 +351,18 @@ function finishTask(type) {
     if (type === 'mp4') {
         qualityTrigger.disabled = availableQualities.length === 0;
     } else if (type === 'transcript') {
-        transcriptLanguageOptions.forEach((option) => { option.disabled = false; });
+        transcriptModeOptions.forEach((option) => { option.disabled = false; });
     }
 }
 
 
-function selectTranscriptLanguage(language) {
+function selectTranscriptMode(mode) {
     if (activeTasks.has('transcript')) return;
-    selectedTranscriptLanguage = language;
-    transcriptLanguageOptions.forEach((option) => {
+    selectedTranscriptMode = mode;
+    transcriptModeOptions.forEach((option) => {
         option.setAttribute(
             'aria-checked',
-            option.dataset.language === selectedTranscriptLanguage ? 'true' : 'false',
+            option.dataset.mode === selectedTranscriptMode ? 'true' : 'false',
         );
     });
 
@@ -502,12 +502,12 @@ function resetAllCards() {
     videoPreview.removeAttribute('src');
     videoPreview.load();
     videoPreviewPanel.style.display = 'none';
-    selectedTranscriptLanguage = 'zh-TW';
-    transcriptLanguageOptions.forEach((option) => {
+    selectedTranscriptMode = 'original';
+    transcriptModeOptions.forEach((option) => {
         option.disabled = false;
         option.setAttribute(
             'aria-checked',
-            option.dataset.language === selectedTranscriptLanguage ? 'true' : 'false',
+            option.dataset.mode === selectedTranscriptMode ? 'true' : 'false',
         );
     });
 
@@ -639,8 +639,8 @@ modelDownloadDialog.addEventListener('keydown', (event) => {
     }
 });
 
-transcriptLanguageOptions.forEach((option) => {
-    option.addEventListener('click', () => selectTranscriptLanguage(option.dataset.language));
+transcriptModeOptions.forEach((option) => {
+    option.addEventListener('click', () => selectTranscriptMode(option.dataset.mode));
 });
 
 urlInput.addEventListener('keydown', (e) => {

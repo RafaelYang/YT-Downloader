@@ -37,7 +37,7 @@ hiddenimports = [
 ]
 hiddenimports += [
     module
-    for module in collect_submodules("transformers.models.marian")
+    for module in collect_submodules("transformers.models.m2m_100")
     if ".modeling_flax_" not in module and ".modeling_tf_" not in module
 ]
 

@@ -492,10 +492,10 @@ body {
     text-align: left;
 }
 
-.transcript-language-control {
+.transcript-mode-control {
     width: 100%;
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: minmax(0, 0.78fr) minmax(0, 1.22fr);
     gap: 6px;
     margin: -2px 0 12px;
     padding: 4px;
@@ -504,7 +504,7 @@ body {
     background: rgba(255, 255, 255, 0.035);
 }
 
-.transcript-language-option {
+.transcript-mode-option {
     min-width: 0;
     padding: 8px 6px;
     border: 1px solid transparent;
@@ -516,39 +516,39 @@ body {
     transition: var(--transition);
 }
 
-.transcript-language-option strong,
-.transcript-language-option small {
+.transcript-mode-option strong,
+.transcript-mode-option small {
     display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    white-space: normal;
 }
 
-.transcript-language-option strong {
+.transcript-mode-option strong {
+    line-height: 1.35;
     font-size: 0.7rem;
 }
 
-.transcript-language-option small {
+.transcript-mode-option small {
     margin-top: 2px;
     color: var(--text-muted);
     font-size: 0.58rem;
+    line-height: 1.35;
 }
 
-.transcript-language-option:hover:not(:disabled),
-.transcript-language-option:focus-visible {
+.transcript-mode-option:hover:not(:disabled),
+.transcript-mode-option:focus-visible {
     border-color: rgba(255, 107, 129, 0.45);
     background: rgba(255, 255, 255, 0.07);
     outline: none;
 }
 
-.transcript-language-option[aria-checked="true"] {
+.transcript-mode-option[aria-checked="true"] {
     border-color: rgba(255, 107, 129, 0.66);
     background: linear-gradient(135deg, rgba(255, 71, 87, 0.2), rgba(255, 255, 255, 0.08));
     color: var(--text-primary);
     box-shadow: 0 3px 14px rgba(255, 71, 87, 0.12);
 }
 
-.transcript-language-option:disabled {
+.transcript-mode-option:disabled {
     opacity: 0.52;
     cursor: not-allowed;
 }
@@ -1403,7 +1403,7 @@ body.model-download-dialog-open {
         margin: 10px 0 4px;
     }
 
-    .transcript-language-control {
+    .transcript-mode-control {
         grid-column: 1 / -1;
         margin: 10px 0 4px;
     }

@@ -371,7 +371,7 @@ def check_ai_runtime_cli() -> int:
     """Verify packaged transcription, translation, and Traditional-Chinese imports."""
     import sentencepiece  # noqa: F401
     from opencc import OpenCC
-    from transformers import MarianMTModel, MarianTokenizer  # noqa: F401
+    from transformers import M2M100ForConditionalGeneration, M2M100Tokenizer  # noqa: F401
 
     if OpenCC('s2twp').convert('软件') != '軟體':
         print('繁體中文字典自我檢查失敗。', file=sys.stderr)
@@ -384,24 +384,33 @@ def check_translation_model_cli() -> int:
     """Load the cached translation weights and run one packaged inference."""
     import torch
     from opencc import OpenCC
-    from transformers import MarianMTModel, MarianTokenizer
+    from transformers import M2M100ForConditionalGeneration, M2M100Tokenizer
 
     from translation_model_manager import ensure_translation_model
     from desktop_config import model_dir
 
     path = ensure_translation_model(model_dir())
-    tokenizer = MarianTokenizer.from_pretrained(path, local_files_only=True)
-    model = MarianMTModel.from_pretrained(path, local_files_only=True)
+    tokenizer = M2M100Tokenizer.from_pretrained(path, local_files_only=True)
+    model = M2M100ForConditionalGeneration.from_pretrained(path, local_files_only=True)
     model.eval()
-    tokens = tokenizer(['Hello.'], return_tensors='pt', padding=True)
-    with torch.inference_mode():
-        generated = model.generate(**tokens, max_new_tokens=32, num_beams=2)
-    translated = tokenizer.batch_decode(generated, skip_special_tokens=True)[0]
-    translated = OpenCC('s2twp').convert(translated).strip()
-    if not translated:
-        print('英中翻譯模型自我檢查未產生文字。', file=sys.stderr)
-        return 1
-    print(f'英中翻譯模型可正常推論：{translated}')
+    outputs = []
+    for source_language, text in [('en', 'Hello.'), ('ja', 'こんにちは。')]:
+        tokenizer.src_lang = source_language
+        tokens = tokenizer([text], return_tensors='pt', padding=True)
+        with torch.inference_mode():
+            generated = model.generate(
+                **tokens,
+                forced_bos_token_id=tokenizer.get_lang_id('zh'),
+                max_new_tokens=32,
+                num_beams=2,
+            )
+        translated = tokenizer.batch_decode(generated, skip_special_tokens=True)[0]
+        translated = OpenCC('s2twp').convert(translated).strip()
+        if not translated:
+            print(f'{source_language} 轉繁中模型自我檢查未產生文字。', file=sys.stderr)
+            return 1
+        outputs.append(f'{source_language}={translated}')
+    print(f'多語轉繁中模型可正常推論：{", ".join(outputs)}')
     return 0
 
 

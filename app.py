@@ -51,6 +51,7 @@ traditional_chinese_converter = None
 output_directory_lock = threading.Lock()
 whisper_model_lock = threading.Lock()
 translation_model_lock = threading.Lock()
+translation_inference_lock = threading.Lock()
 traditional_chinese_lock = threading.Lock()
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -153,7 +154,37 @@ ALLOWED_YOUTUBE_HOSTS = {
     'www.youtu.be',
 }
 OUTPUT_KINDS = {'mp4', 'mp3', 'transcript'}
-TRANSCRIPT_LANGUAGES = {'zh-TW', 'en'}
+TRANSCRIPT_MODES = {'original', 'original-zh'}
+TRANSLATION_LANGUAGE_ALIASES = {
+    'jw': 'jv',
+    'nn': 'no',
+    'yue': 'zh',
+}
+TRANSLATION_SOURCE_LANGUAGES = {
+    'af', 'am', 'ar', 'az', 'be', 'bg', 'bn', 'bs', 'ca', 'cs', 'cy', 'da',
+    'de', 'el', 'en', 'es', 'et', 'fa', 'fi', 'fr', 'gl', 'gu', 'ha', 'he',
+    'hi', 'hr', 'ht', 'hu', 'hy', 'id', 'is', 'it', 'ja', 'jv', 'ka', 'kk',
+    'km', 'kn', 'ko', 'lb', 'ln', 'lo', 'lt', 'lv', 'mg', 'mk', 'ml', 'mn',
+    'mr', 'ms', 'my', 'ne', 'nl', 'no', 'oc', 'pa', 'pl', 'ps', 'pt', 'ro',
+    'ru', 'sd', 'si', 'sk', 'sl', 'so', 'sq', 'sr', 'su', 'sv', 'sw', 'ta',
+    'th', 'tl', 'tr', 'uk', 'ur', 'uz', 'vi', 'yi', 'yo', 'zh',
+}
+TRANSCRIPT_LANGUAGE_LABELS_ZH_TW = {
+    'de': '德文',
+    'en': '英文',
+    'es': '西班牙文',
+    'fr': '法文',
+    'id': '印尼文',
+    'it': '義大利文',
+    'ja': '日文',
+    'ko': '韓文',
+    'pt': '葡萄牙文',
+    'ru': '俄文',
+    'th': '泰文',
+    'vi': '越南文',
+    'yue': '粵語',
+    'zh': '中文',
+}
 WHISPER_MODEL_NAME = 'turbo'
 WHISPER_MODEL_DOWNLOAD_SIZE_BYTES = 1_617_941_637
 
@@ -215,7 +246,7 @@ def output_stem(
     title: str,
     kind: str,
     quality: int | None = None,
-    transcript_language: str | None = None,
+    transcript_mode: str | None = None,
 ) -> str:
     """Build a user-facing filename stem as title_kind[_quality]."""
     labels = {
@@ -227,10 +258,10 @@ def output_stem(
     parts = [clean_title, labels[kind]]
     if kind == 'mp4' and quality is not None:
         parts.append(f'{quality}p')
-    if kind == 'transcript' and transcript_language == 'zh-TW':
-        parts.append('繁中')
-    elif kind == 'transcript' and transcript_language == 'en':
-        parts.append('英文雙語')
+    if kind == 'transcript' and transcript_mode == 'original':
+        parts.append('原文')
+    elif kind == 'transcript' and transcript_mode == 'original-zh':
+        parts.append('原文加繁中翻譯')
     return '_'.join(parts)
 
 
@@ -608,7 +639,7 @@ def get_whisper_model():
 
 
 def get_translation_model():
-    """Lazily load the pinned offline English-to-Chinese translation model."""
+    """Lazily load the pinned offline multilingual translation model."""
     global translation_model, translation_tokenizer
     if translation_model is not None and translation_tokenizer is not None:
         return translation_tokenizer, translation_model
@@ -617,17 +648,17 @@ def get_translation_model():
         if translation_model is not None and translation_tokenizer is not None:
             return translation_tokenizer, translation_model
 
-        from transformers import MarianMTModel, MarianTokenizer
+        from transformers import M2M100ForConditionalGeneration, M2M100Tokenizer
 
         if MODEL_DIR is None:
-            raise RuntimeError('英中雙語逐字稿目前只支援桌面版')
+            raise RuntimeError('原文加繁中翻譯目前只支援桌面版')
         model_path = ensure_translation_model(MODEL_DIR)
-        print(f"🌐 載入英中翻譯模型：{model_path.name}")
-        translation_tokenizer = MarianTokenizer.from_pretrained(
+        print(f"🌐 載入多語轉繁中翻譯模型：{model_path.name}")
+        translation_tokenizer = M2M100Tokenizer.from_pretrained(
             model_path,
             local_files_only=True,
         )
-        translation_model = MarianMTModel.from_pretrained(
+        translation_model = M2M100ForConditionalGeneration.from_pretrained(
             model_path,
             local_files_only=True,
         )
@@ -668,10 +699,10 @@ def approximate_download_size(size: int) -> str:
     return f'約 {round(size / 1_000_000):d} MB'
 
 
-def transcript_model_download_status(language: str) -> dict:
+def transcript_model_download_status(mode: str) -> dict:
     """Describe model downloads needed before starting a transcript job."""
-    if language not in TRANSCRIPT_LANGUAGES:
-        raise ValueError('逐字稿語言只支援繁體中文或英文雙語')
+    if mode not in TRANSCRIPT_MODES:
+        raise ValueError('逐字稿模式只支援原文或原文加繁中翻譯')
 
     models = []
     if not is_whisper_model_available():
@@ -681,17 +712,17 @@ def transcript_model_download_status(language: str) -> dict:
             'size_bytes': WHISPER_MODEL_DOWNLOAD_SIZE_BYTES,
             'size_label': approximate_download_size(WHISPER_MODEL_DOWNLOAD_SIZE_BYTES),
         })
-    if language == 'en' and not is_translation_model_available():
+    if mode == 'original-zh' and not is_translation_model_available():
         models.append({
-            'id': 'translation-en-zh',
-            'name': '英文轉繁中翻譯模型',
+            'id': 'translation-multilingual-zh',
+            'name': 'M2M100 多語轉繁中翻譯模型',
             'size_bytes': TRANSLATION_MODEL_DOWNLOAD_SIZE_BYTES,
             'size_label': approximate_download_size(TRANSLATION_MODEL_DOWNLOAD_SIZE_BYTES),
         })
 
     total_size = sum(model['size_bytes'] for model in models)
     return {
-        'language': language,
+        'mode': mode,
         'download_required': bool(models),
         'models': models,
         'total_size_bytes': total_size,
@@ -714,18 +745,52 @@ def to_traditional_chinese(text: str) -> str:
         return converted.replace('瞭', '了')
 
 
-def translate_english_segments(texts: list[str]) -> list[str]:
-    """Translate English segments locally, preserving one output per input."""
+def translation_source_language(source_language: str) -> str:
+    """Map a Whisper language code to the multilingual translator code."""
+    normalized = re.sub(r'[^a-z-]', '', str(source_language).lower())
+    translated = TRANSLATION_LANGUAGE_ALIASES.get(normalized, normalized)
+    if translated not in TRANSLATION_SOURCE_LANGUAGES:
+        language_label = transcript_language_label(normalized)
+        raise ValueError(
+            f'目前不支援將「{language_label}」翻譯成繁中，請改選「原文」'
+        )
+    return translated
+
+
+def transcript_language_label(language: str) -> str:
+    """Return a readable label for Whisper's detected language code."""
+    normalized = re.sub(r'[^a-z-]', '', str(language).lower()) or 'unknown'
+    localized = TRANSCRIPT_LANGUAGE_LABELS_ZH_TW.get(normalized)
+    if localized:
+        return f'{localized} ({normalized})'
+    try:
+        from whisper.tokenizer import LANGUAGES
+
+        name = LANGUAGES.get(normalized)
+    except ImportError:
+        name = None
+    return f'{name} ({normalized})' if name else normalized
+
+
+def translate_segments(texts: list[str], source_language: str) -> list[str]:
+    """Translate source-language segments to Traditional Chinese locally."""
     if not texts:
         return []
+
+    translator_language = translation_source_language(source_language)
+    if translator_language == 'zh':
+        return [to_traditional_chinese(text) for text in texts]
 
     import torch
 
     tokenizer, model = get_translation_model()
     translations = []
-    with torch.inference_mode():
-        for start in range(0, len(texts), 8):
-            batch_texts = texts[start:start + 8]
+    # M2M100 stores the source language on the shared tokenizer instance.
+    # Serialize inference so simultaneous jobs cannot switch each other's language.
+    with translation_inference_lock, torch.inference_mode():
+        tokenizer.src_lang = translator_language
+        for start in range(0, len(texts), 4):
+            batch_texts = texts[start:start + 4]
             tokens = tokenizer(
                 batch_texts,
                 return_tensors='pt',
@@ -735,6 +800,7 @@ def translate_english_segments(texts: list[str]) -> list[str]:
             )
             generated = model.generate(
                 **tokens,
+                forced_bos_token_id=tokenizer.get_lang_id('zh'),
                 max_new_tokens=256,
                 num_beams=4,
             )
@@ -772,30 +838,42 @@ def transcript_timestamp(seconds: float) -> str:
 
 def render_transcript(
     title: str,
-    language: str,
+    mode: str,
+    source_language: str,
     segments: list[dict],
     translations: list[str] | None = None,
 ) -> str:
-    """Render timestamped Traditional-Chinese or bilingual transcript text."""
-    if language not in TRANSCRIPT_LANGUAGES:
-        raise ValueError('不支援的逐字稿語言')
+    """Render a timestamped original or original-plus-translation transcript."""
+    if mode not in TRANSCRIPT_MODES:
+        raise ValueError('不支援的逐字稿模式')
     translations = translations or []
-    if language == 'en' and len(translations) != len(segments):
-        raise ValueError('英中翻譯段落數量不一致')
+    if mode == 'original-zh' and len(translations) != len(segments):
+        raise ValueError('原文與繁中翻譯段落數量不一致')
 
-    mode_label = '繁體中文分段' if language == 'zh-TW' else 'English＋繁體中文分段'
-    lines = [f'📌 {title}', f'語言：{mode_label}', f'模型：Whisper {WHISPER_MODEL_NAME}', '=' * 50, '']
+    mode_label = '原文' if mode == 'original' else '原文＋繁中翻譯'
+    language_label = transcript_language_label(source_language)
+    lines = [
+        f'📌 {title}',
+        f'輸出：{mode_label}',
+        f'偵測語言：{language_label}',
+        f'模型：Whisper {WHISPER_MODEL_NAME}',
+        '=' * 50,
+        '',
+    ]
     for index, segment in enumerate(segments):
         timestamp = (
             f"[{transcript_timestamp(segment['start'])} → "
             f"{transcript_timestamp(segment['end'])}]"
         )
         lines.append(timestamp)
-        if language == 'zh-TW':
-            lines.append(to_traditional_chinese(segment['text']))
+        original_text = segment['text']
+        if source_language in {'zh', 'yue'}:
+            original_text = to_traditional_chinese(original_text)
+        if mode == 'original':
+            lines.append(original_text)
         else:
-            lines.append(f"英文：{segment['text']}")
-            lines.append(f"中文：{translations[index]}")
+            lines.append(f"原文：{original_text}")
+            lines.append(f"繁中：{translations[index]}")
         lines.append('')
     return '\n'.join(lines).rstrip() + '\n'
 
@@ -1249,10 +1327,10 @@ async def process_mp3(job_id: str):
 # API: 檢查逐字稿模型（不下載）
 # ══════════════════════════════════════════
 @app.get('/api/transcript-model-status')
-def get_transcript_model_status(language: str = 'zh-TW'):
+def get_transcript_model_status(mode: str = 'original'):
     """Tell the UI whether explicit consent is needed before model download."""
     try:
-        return transcript_model_download_status(language)
+        return transcript_model_download_status(mode)
     except ValueError as exc:
         raise HTTPException(400, str(exc)) from exc
 
@@ -1261,12 +1339,12 @@ def get_transcript_model_status(language: str = 'zh-TW'):
 # API: 產生逐字稿（SSE 進度串流）
 # ══════════════════════════════════════════
 @app.get('/api/process-transcript/{job_id}')
-async def process_transcript(job_id: str, language: str = 'zh-TW'):
+async def process_transcript(job_id: str, mode: str = 'original'):
     """下載音訊 → Whisper 辨識 → 產生逐字稿，透過 SSE 回報進度"""
     if job_id not in resolved_jobs:
         raise HTTPException(404, '工作不存在或已過期')
-    if language not in TRANSCRIPT_LANGUAGES:
-        raise HTTPException(400, '逐字稿語言只支援繁體中文或英文雙語')
+    if mode not in TRANSCRIPT_MODES:
+        raise HTTPException(400, '逐字稿模式只支援原文或原文加繁中翻譯')
 
     job = resolved_jobs[job_id]
 
@@ -1281,7 +1359,7 @@ async def process_transcript(job_id: str, language: str = 'zh-TW'):
             transcript_stem = output_stem(
                 title,
                 'transcript',
-                transcript_language=language,
+                transcript_mode=mode,
             )
 
             download_opts = {
@@ -1334,7 +1412,6 @@ async def process_transcript(job_id: str, language: str = 'zh-TW'):
                 model = get_whisper_model()
                 return model.transcribe(
                     str(wav_path),
-                    language='zh' if language == 'zh-TW' else 'en',
                     task='transcribe',
                     fp16=False,
                     verbose=False,
@@ -1352,9 +1429,12 @@ async def process_transcript(job_id: str, language: str = 'zh-TW'):
             segments = normalize_transcript_segments(result)
             if not segments:
                 raise RuntimeError('沒有辨識到可輸出的語音內容')
+            source_language = str(result.get('language') or '').strip().lower()
+            if not source_language:
+                raise RuntimeError('無法判斷影片的原文語言')
 
             translations = None
-            if language == 'en':
+            if mode == 'original-zh':
                 yield sse_event({
                     'step': 'translate',
                     'progress': 75,
@@ -1363,14 +1443,15 @@ async def process_transcript(job_id: str, language: str = 'zh-TW'):
 
                 translate_future = loop.run_in_executor(
                     None,
-                    translate_english_segments,
+                    translate_segments,
                     [segment['text'] for segment in segments],
+                    source_language,
                 )
                 while not translate_future.done():
                     yield sse_event({
                         'step': 'translate',
                         'progress': 85,
-                        'message': '🌐 正在產生英中雙語段落...',
+                        'message': '🌐 正在產生原文與繁中翻譯段落...',
                     })
                     await asyncio.sleep(1.2)
                 translations = await translate_future
@@ -1379,7 +1460,8 @@ async def process_transcript(job_id: str, language: str = 'zh-TW'):
             raw_title = job.get('raw_title', title)
             transcript_text = render_transcript(
                 raw_title,
-                language,
+                mode,
+                source_language,
                 segments,
                 translations,
             )
@@ -1404,7 +1486,8 @@ async def process_transcript(job_id: str, language: str = 'zh-TW'):
                     transcript_text[:900]
                     + ('...' if len(transcript_text) > 900 else '')
                 ),
-                'language': language,
+                'mode': mode,
+                'source_language': source_language,
                 'segments': len(segments),
             })
 

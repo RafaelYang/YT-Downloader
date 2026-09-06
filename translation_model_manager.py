@@ -1,4 +1,4 @@
-"""Securely provision the pinned offline English-to-Chinese model."""
+"""Securely provision the pinned offline multilingual translation model."""
 
 from __future__ import annotations
 
@@ -9,18 +9,18 @@ from pathlib import Path
 from whisper_model_manager import download_verified_model, is_verified_model
 
 
-MODEL_ID = "Helsinki-NLP/opus-mt-en-zh"
-MODEL_REVISION = "408d9bc410a388e1d9aef112a2daba955b945255"
-MODEL_DIRECTORY_NAME = f"opus-mt-en-zh-{MODEL_REVISION[:8]}"
-MODEL_DOWNLOAD_SIZE_BYTES = 315_317_575
+MODEL_ID = "facebook/m2m100_418M"
+MODEL_REVISION = "55c2e61bbf05dfb8d7abccdc3fae6fc8512fd636"
+MODEL_DIRECTORY_NAME = f"m2m100-418m-{MODEL_REVISION[:8]}"
+MODEL_DOWNLOAD_SIZE_BYTES = 1_941_931_012
 MODEL_FILES = {
-    "config.json": "bcae8ed74fed77fb51c58462b62397fee6b1a1a34aece79183a0dd02ad329e71",
-    "generation_config.json": "837839ed0534a27084f9b980fc33f47729052dd89cb26cca7ac830765ed30e49",
-    "pytorch_model.bin": "69a1d6ec829cee349360b3b677ac0aa99a7d88822d1a6578370029efffdca3f5",
-    "source.spm": "5775ddc9e3ff2fae91554da56468ad35ff56edaba870fea74447bc7234bfdaa8",
-    "target.spm": "81dc94efa84e4025ef38d25d5d07429fe41e3eb29d44003f1db6fe98487b0052",
-    "tokenizer_config.json": "5df181fba586b7cb37d429c13c4f96cb43fb11de7bb6489733d9eded32418179",
-    "vocab.json": "f1832ca38f7aa158b9a944ff583e4901e6b37d9d4ad9241f03838e636e9cfb03",
+    "config.json": "df0ae43e4e4b0d7e3c97b7f447857a70ef6b6a2aa1f145cedbcc730d95f67134",
+    "generation_config.json": "aed76366507333ddbb8bd49960f23c82fe6446b3319a46a54befdb45324ccf61",
+    "pytorch_model.bin": "d907ea45e4e4b9db163382a6674f6218b3c59566fe06d77f4055c208b4e87ed1",
+    "sentencepiece.bpe.model": "d8f7c76ed2a5e0822be39f0a4f95a55eb19c78f4593ce609e2edbc2aea4d380a",
+    "special_tokens_map.json": "c1a4f86c3874d279ae1b2a05162858db5dd6c61665d84223ed886cbcff08fda6",
+    "tokenizer_config.json": "a53e6aa83da0b82565ed90c3849056307a9453843322ac5b8439ec4b9497fe48",
+    "vocab.json": "b6e77e474aeea8f441363aca7614317c06381f3eacfe10fb9856d5081d1074cc",
 }
 
 
@@ -51,11 +51,11 @@ def ensure_translation_model(model_directory: Path) -> Path:
                 url,
                 temporary / filename,
                 digest,
-                model_label="英中翻譯模型",
+                model_label="多語轉繁中翻譯模型",
             )
 
         if not is_verified_translation_model(temporary):
-            raise RuntimeError("英中翻譯模型檔案不完整")
+            raise RuntimeError("多語轉繁中翻譯模型檔案不完整")
         if destination.exists():
             shutil.rmtree(destination)
         temporary.replace(destination)

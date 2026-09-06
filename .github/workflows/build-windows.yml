@@ -6,7 +6,7 @@ on:
       release_tag:
         description: Existing prerelease tag to receive the installer
         required: true
-        default: v0.1.4-dev
+        default: v0.1.5-dev
         type: string
       publish_release:
         description: Attach the verified installer to the private GitHub Release
@@ -257,9 +257,9 @@ jobs:
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v7
         with:
-          name: YT-Downloader-0.1.4-dev-Windows-x64
+          name: YT-Downloader-0.1.5-dev-Windows-x64
           path: |
-            dist/installer/YT-Downloader-0.1.4-dev-Windows-x64-Setup.exe
+            dist/installer/YT-Downloader-0.1.5-dev-Windows-x64-Setup.exe
             dist/installer/SHA256SUMS-windows.txt
           compression-level: 0
           if-no-files-found: error
@@ -273,5 +273,5 @@ jobs:
         run: |
           gh release view $env:RELEASE_TAG
           gh release upload $env:RELEASE_TAG `
-            "dist\installer\YT-Downloader-0.1.4-dev-Windows-x64-Setup.exe#Windows 10/11 x64 安裝程式" `
+            "dist\installer\YT-Downloader-0.1.5-dev-Windows-x64-Setup.exe#Windows 10/11 x64 安裝程式" `
             --clobber

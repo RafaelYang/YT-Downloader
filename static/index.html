@@ -139,14 +139,14 @@
                     <div class="action-icon">📝</div>
                     <div class="action-title">AI 逐字稿</div>
                     <div class="action-desc">高品質辨識・時間碼分段</div>
-                    <div class="transcript-language-control" role="radiogroup" aria-label="逐字稿語言">
-                        <button class="transcript-language-option" id="transcript-language-zh" type="button" role="radio" aria-checked="true" data-language="zh-TW">
-                            <strong>繁體中文</strong>
-                            <small>分段逐字稿</small>
+                    <div class="transcript-mode-control" role="radiogroup" aria-label="逐字稿輸出內容">
+                        <button class="transcript-mode-option" id="transcript-mode-original" type="button" role="radio" aria-checked="true" data-mode="original">
+                            <strong>原文</strong>
+                            <small>自動辨識語言</small>
                         </button>
-                        <button class="transcript-language-option" id="transcript-language-en" type="button" role="radio" aria-checked="false" data-language="en">
-                            <strong>English</strong>
-                            <small>英文＋繁中</small>
+                        <button class="transcript-mode-option" id="transcript-mode-bilingual" type="button" role="radio" aria-checked="false" data-mode="original-zh">
+                            <strong>原文＋繁中翻譯</strong>
+                            <small>每段原文後附翻譯</small>
                         </button>
                     </div>
                     <button class="btn-action" id="btn-transcript" onclick="startTask('transcript')">

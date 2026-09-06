@@ -59,7 +59,7 @@ hiddenimports = [
 ]
 hiddenimports += [
     module
-    for module in collect_submodules("transformers.models.marian")
+    for module in collect_submodules("transformers.models.m2m_100")
     if ".modeling_flax_" not in module and ".modeling_tf_" not in module
 ]
 
@@ -112,8 +112,8 @@ app = BUNDLE(
     info_plist={
         "CFBundleDisplayName": APP_NAME,
         "CFBundleName": APP_NAME,
-        "CFBundleShortVersionString": "0.1.4",
-        "CFBundleVersion": "4",
+        "CFBundleShortVersionString": "0.1.5",
+        "CFBundleVersion": "5",
         "LSMinimumSystemVersion": "13.0",
         "LSUIElement": True,
         "NSHighResolutionCapable": True,

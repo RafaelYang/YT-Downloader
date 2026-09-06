@@ -1,8 +1,8 @@
 # UTF-8
 VSVersionInfo(
   ffi=FixedFileInfo(
-    filevers=(0, 1, 4, 0),
-    prodvers=(0, 1, 4, 0),
+    filevers=(0, 1, 5, 0),
+    prodvers=(0, 1, 5, 0),
     mask=0x3f,
     flags=0x0,
     OS=0x40004,
@@ -18,12 +18,12 @@ VSVersionInfo(
           [
             StringStruct('CompanyName', '學人新創'),
             StringStruct('FileDescription', 'YT Downloader by 學人新創'),
-            StringStruct('FileVersion', '0.1.4-dev'),
+            StringStruct('FileVersion', '0.1.5-dev'),
             StringStruct('InternalName', 'YT Downloader by 學人新創'),
             StringStruct('LegalCopyright', 'Copyright (c) 學人新創'),
             StringStruct('OriginalFilename', 'YT Downloader by 學人新創.exe'),
             StringStruct('ProductName', 'YT Downloader by 學人新創'),
-            StringStruct('ProductVersion', '0.1.4-dev'),
+            StringStruct('ProductVersion', '0.1.5-dev'),
           ],
         )
       ]

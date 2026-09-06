@@ -1,8 +1,8 @@
 # YT Downloader by 學人新創
 
-在使用者自己的電腦上執行的 YouTube 公開影片處理工具。目前功能包括
-可選畫質的 MP4、MP3 與本機 AI 逐字稿。逐字稿可選繁體中文或
-English＋繁中，兩者都有時間碼分段；英文模式每段先顯示英文原文，再顯示
+在使用者自己的電腦上執行的 YouTube 公開影片處理工具。目前原始碼功能包括
+可選畫質的 MP4、MP3 與本機 AI 逐字稿。逐字稿會自動辨識影片語言，並可選
+「原文」或「原文＋繁中翻譯」；翻譯模式會在每個時間碼分段先顯示原文，再顯示
 繁中翻譯。MP4 預設選最高畫質，每個
 選項會顯示 yt-dlp 中繼資料估算的合併檔案大小；完成後可直接在頁面中從
 本機預覽，不會將成品上傳雲端。請只處理自己擁有、已獲授權或平台允許
@@ -11,17 +11,17 @@ English＋繁中，兩者都有時間碼分段；英文模式每段先顯示英�
 桌面版完成處理後會直接存入「下載項目」的 `影片標題_日期時間` 資料夾，並提供
 「📂 開啟資料夾」按鈕直接用系統檔案管理員開啟該次成品位置。成品檔名統一為
 `影片標題_影片_畫質.mp4`、`影片標題_音檔.mp3` 與
-`影片標題_逐字稿_繁中.txt` 或 `影片標題_逐字稿_英文雙語.txt`。
+`影片標題_逐字稿_原文.txt` 或 `影片標題_逐字稿_原文加繁中翻譯.txt`。
 
 ## 下載安裝程式
 
 一般使用者請從 [YT-Downloader Google 雲端硬碟](https://drive.google.com/drive/folders/1Y4tBWJJzqqnewNeZWbWIeTxHY1m-3Kg4)
 下載最新的雙平台安裝檔：
 
-- macOS Apple Silicon：`YT-Downloader-0.1.4-dev-macOS-arm64.zip`
-- Windows 10／11 x64：`YT-Downloader-0.1.4-dev-Windows-x64-Setup.exe`
+- macOS Apple Silicon：`YT-Downloader-0.1.5-dev-macOS-arm64.zip`
+- Windows 10／11 x64：`YT-Downloader-0.1.5-dev-Windows-x64-Setup.exe`
 
-私人 [GitHub Release v0.1.4-dev](https://github.com/RafaelYang/YT-Downloader/releases/tag/v0.1.4-dev)
+私人 [GitHub Release v0.1.5-dev](https://github.com/RafaelYang/YT-Downloader/releases/tag/v0.1.5-dev)
 保留給受邀的開發與測試成員，GitHub 會在安裝檔右側顯示 SHA-256。
 頁面最下方的 `Source code (zip)` 與 `Source code (tar.gz)` 是 GitHub 自動產生的
 原始碼，不是安裝檔；一般使用者不需要下載。
@@ -39,13 +39,13 @@ English＋繁中，兩者都有時間碼分段；英文模式每段先顯示英�
 - FFmpeg 9.0.1 arm64 已固定版本與 SHA-256，可納入開發預覽 App。
 - 高畫質相容層使用固定版本的 Node.js 24.20.0 arm64 與
   bgutil-ytdlp-pot-provider 1.3.2；內部服務只監聽隨機 `127.0.0.1` 連接埠。
-- `dist/` 已產出 macOS Apple Silicon App 與 394,897,651 bytes 的 ZIP 開發預覽。
+- `dist/` 已產出 macOS Apple Silicon App 與 394,903,369 bytes 的 ZIP 開發預覽。
 - Windows 10／11 x64 current-user 安裝程式已在 GitHub `windows-2022` Runner
   完成建置、封裝版啟動及安裝／啟動／解除安裝生命週期測試。
 - MP4 會優先使用 H.264／AAC；若所選畫質只有 AV1／VP9，儲存前會自動
   轉為 H.264／AAC MP4，避免 QuickTime 只播放聲音。
-- 逐字稿使用 Whisper `turbo`；繁中模式會轉成台灣繁體用字，英文模式另用
-  本機英中模型逐段翻譯，不需付費 API。
+- 逐字稿使用 Whisper `turbo` 自動辨識原文語言；翻譯模式另用固定版本的
+  M2M100 本機多語模型逐段翻譯成台灣繁體中文，不需付費 API。
 - 缺少逐字稿模型時，開始前會先列出所需模型與預估下載容量；使用者選擇
   「暫不下載」即取消流程，不會建立下載或逐字稿工作。
 - 主程式自動更新、SQLite 背景工作與正式 Developer ID 公證尚未完成。
@@ -94,7 +94,7 @@ scripts/build_macos.sh
 輸出位置：
 
 - `dist/YT Downloader by 學人新創.app`
-- `dist/YT-Downloader-0.1.4-dev-macOS-arm64.zip`
+- `dist/YT-Downloader-0.1.5-dev-macOS-arm64.zip`
 
 這個預覽包在目前開發機上採 ad-hoc 簽章。正式給一般使用者下載前，仍須
 使用學人新創的 Apple Developer ID 對 App 與內含執行檔重新簽章、送 Apple
@@ -108,7 +108,7 @@ x64 與 macOS 13 以上 Apple Silicon 版本；Intel Mac 尚無可安裝版本�
 
 Windows：
 
-1. 下載 `YT-Downloader-0.1.4-dev-Windows-x64-Setup.exe` 並執行。
+1. 下載 `YT-Downloader-0.1.5-dev-Windows-x64-Setup.exe` 並執行。
 2. 安裝在目前使用者的 Local AppData，不需要管理員權限；安裝完成後可由桌面
    或開始功能表啟動，程式會常駐系統列。
 3. 預覽版尚未簽章，因此 SmartScreen 可能顯示「未知的發行者」；只應從此私人
@@ -123,7 +123,7 @@ macOS：
 3. App 只會在使用者手動開啟後於選單列常駐，不會隨登入 macOS 自動啟動；
    執行下載或逐字稿期間，電腦與 App 都必須保持運作。
 4. 第一次產生逐字稿時需要下載約 1.6 GB 的 Whisper `turbo` 模型；第一次使用
-   英文雙語模式另需下載約 308 MB 的英中翻譯模型，因此會比之後的使用久。
+   「原文＋繁中翻譯」另需下載約 1.9 GB 的多語翻譯模型，因此會比之後的使用久。
 
 YouTube 可能依影片、帳號或網路環境限制擷取。請只處理自己擁有、已獲授權
 或平台允許下載的內容。

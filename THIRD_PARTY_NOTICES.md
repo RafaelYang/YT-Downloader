@@ -43,12 +43,12 @@ the applicable license texts and satisfy source-availability requirements.
 - Project: <https://github.com/openai/whisper>
 - License: MIT
 
-## Helsinki-NLP OPUS-MT English-Chinese model
+## Meta M2M100 multilingual translation model
 
-- Model: `Helsinki-NLP/opus-mt-en-zh`
-- Pinned revision: `408d9bc410a388e1d9aef112a2daba955b945255`
-- Project: <https://huggingface.co/Helsinki-NLP/opus-mt-en-zh>
-- License: Apache-2.0
+- Model: `facebook/m2m100_418M`
+- Pinned revision: `55c2e61bbf05dfb8d7abccdc3fae6fc8512fd636`
+- Project: <https://huggingface.co/facebook/m2m100_418M>
+- License: MIT
 - The application downloads and SHA-256 verifies the model on first use; the
   model is not embedded in the installer.
 
