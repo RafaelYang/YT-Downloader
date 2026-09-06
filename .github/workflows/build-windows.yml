@@ -132,7 +132,7 @@ jobs:
             throw "Inno Setup failed."
           }
 
-          $Installer = (Resolve-Path "dist\installer\YT-Downloader-0.1.4-dev-Windows-x64-Setup.exe").Path
+          $Installer = (Resolve-Path "dist\installer\YT-Downloader-0.1.5-dev-Windows-x64-Setup.exe").Path
           $Hash = (Get-FileHash -Path $Installer -Algorithm SHA256).Hash.ToLowerInvariant()
           $Checksum = Join-Path (Split-Path -Parent $Installer) "SHA256SUMS-windows.txt"
           [System.IO.File]::WriteAllText(
@@ -146,7 +146,7 @@ jobs:
       - name: Smoke-test installer lifecycle
         shell: pwsh
         run: |
-          $Installer = (Resolve-Path "dist\installer\YT-Downloader-0.1.4-dev-Windows-x64-Setup.exe").Path
+          $Installer = (Resolve-Path "dist\installer\YT-Downloader-0.1.5-dev-Windows-x64-Setup.exe").Path
           $InstallDir = Join-Path $env:RUNNER_TEMP "yt-downloader-installed"
           $Executable = Join-Path $InstallDir "YT Downloader by 學人新創.exe"
           $env:YT_DATA_DIR = Join-Path $env:RUNNER_TEMP "yt-downloader-installer-smoke-data"
