@@ -254,16 +254,6 @@ jobs:
           }
           Write-Host "Windows installer install/start/uninstall lifecycle passed."
 
-      - name: Upload workflow artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: YT-Downloader-0.1.6-dev-Windows-x64
-          path: |
-            dist/installer/YT-Downloader-0.1.6-dev-Windows-x64-Setup.exe
-            dist/installer/SHA256SUMS-windows.txt
-          compression-level: 0
-          if-no-files-found: error
-
       - name: Attach installer to private prerelease
         if: ${{ inputs.publish_release }}
         shell: pwsh
@@ -272,6 +262,22 @@ jobs:
           RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           gh release view $env:RELEASE_TAG
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           gh release upload $env:RELEASE_TAG `
             "dist\installer\YT-Downloader-0.1.6-dev-Windows-x64-Setup.exe#Windows 10/11 x64 安裝程式" `
             --clobber
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      # Releases are the durable installer archive. Only unpublished test builds
+      # need an Actions artifact; do not let artifact quota block publication.
+      - name: Upload temporary test installer
+        if: ${{ !inputs.publish_release }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: YT-Downloader-0.1.6-dev-Windows-x64
+          path: |
+            dist/installer/YT-Downloader-0.1.6-dev-Windows-x64-Setup.exe
+            dist/installer/SHA256SUMS-windows.txt
+          retention-days: 3
+          compression-level: 0
+          if-no-files-found: error
